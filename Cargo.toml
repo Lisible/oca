@@ -1,0 +1,7 @@
+[package]
+name = "oca"
+version = "0.1.0"
+authors = ["Clément Sibille <clement.sibille@protonmail.com>"]
+
+[dependencies]
+sdl = "0.3.6"
