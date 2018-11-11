@@ -22,13 +22,17 @@
 * SOFTWARE.
 */
 
-pub struct Console {
+use gb::cpu::*;
 
+pub struct Console {
+    cpu: CPU
 }
 
 impl Console {
     pub fn new() -> Console {
-        Console {}
+        Console {
+            cpu: CPU::new()
+        }
     }
 
     pub fn start(&mut self) {
