@@ -134,7 +134,6 @@ impl CPU {
         self.registers.iter_mut().for_each(|(_, r)| r.borrow_mut().write(0x00));
         self.program_counter = 0x100;
         self.stack_pointer = 0xFFFE;
-        self.cpu_instructions = Some(self.create_instruction_array());
     }
 
     ///
