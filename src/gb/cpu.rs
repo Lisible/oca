@@ -127,8 +127,6 @@ pub struct CPU {
     /// Program counter, points to the next instruction to be executed
     ///
     program_counter: u16,
-
-    cpu_instructions: [CPUInstruction; 256],
 }
 
 impl CPU {
@@ -162,7 +160,6 @@ impl CPU {
             bi_registers,
             stack_pointer: 0,
             program_counter: 0,
-            cpu_instructions: CPU::create_instruction_array(),
         }
     }
 
