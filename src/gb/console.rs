@@ -36,6 +36,11 @@ impl Console {
     }
 
     pub fn start(&mut self) {
-        println!("Hello !");
+        self.cpu.initialize();
+        //cpu.load_rom("~/Bureau/tetris.gb");
+
+        loop {
+            //self.cpu.emulate_cycle();
+        }
     }
 }

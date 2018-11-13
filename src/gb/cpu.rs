@@ -43,7 +43,16 @@ pub struct CPU {
     /// A "bi-register" is two registers used as a bigger one
     /// The GameBoy CPU has 4 bi-registers: AF, BC, DE, HL
     ///
-    bi_registers: HashMap<BiRegisterIdentifier, BiRegister8Bit>
+    bi_registers: HashMap<BiRegisterIdentifier, BiRegister8Bit>,
+
+    ///
+    /// The stack pointer, points to the current stack position
+    ///
+    stack_pointer: u16,
+    ///
+    /// Program counter, points to the next instruction to be executed
+    ///
+    program_counter: u16,
 }
 
 impl CPU {
@@ -75,8 +84,19 @@ impl CPU {
 
         CPU {
             registers,
-            bi_registers
+            bi_registers,
+            stack_pointer: 0,
+            program_counter: 0,
         }
+    }
+
+    ///
+    /// Sets the registers up for running the emulator
+    /// 
+    pub fn initialize(&mut self) {
+        self.registers.iter_mut().for_each(|(_,r)| r.borrow_mut().write(0x00));
+        self.program_counter = 0x100;
+        self.stack_pointer = 0xFFFE;
     }
 
     ///
