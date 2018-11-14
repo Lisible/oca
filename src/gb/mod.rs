@@ -24,7 +24,3 @@
 
 pub mod console;
 mod cpu;
-mod register_identifier;
-mod register;
-mod register_8bit;
-mod bi_register_8bit;

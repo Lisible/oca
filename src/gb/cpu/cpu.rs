@@ -22,10 +22,10 @@
 * SOFTWARE.
 */
 
-use gb::register_identifier::*;
-use gb::register::Register;
-use gb::register_8bit::Register8Bit;
-use gb::bi_register_8bit::BiRegister8Bit;
+use gb::cpu::register::Register;
+use gb::cpu::register_identifier::*;
+use gb::cpu::register_8bit::*;
+use gb::cpu::bi_register_8bit::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;

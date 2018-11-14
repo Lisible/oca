@@ -22,25 +22,8 @@
 * SOFTWARE.
 */
 
-use gb::cpu::cpu::CPU;
-
-pub struct Console {
-    cpu: CPU
-}
-
-impl Console {
-    pub fn new() -> Console {
-        Console {
-            cpu: CPU::new()
-        }
-    }
-
-    pub fn start(&mut self) {
-        self.cpu.initialize();
-        //cpu.load_rom("~/Bureau/tetris.gb");
-
-        loop {
-            //self.cpu.emulate_cycle();
-        }
-    }
-}
+pub mod cpu;
+mod register_identifier;
+mod register;
+mod register_8bit;
+mod bi_register_8bit;

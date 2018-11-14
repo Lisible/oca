@@ -22,7 +22,7 @@
 * SOFTWARE.
 */
 
-use gb::register::*;
+use gb::cpu::register::*;
 
 ///
 /// Represents an 8-bit register

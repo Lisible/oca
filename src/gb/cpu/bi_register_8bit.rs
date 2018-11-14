@@ -22,8 +22,8 @@
 * SOFTWARE.
 */
 
-use gb::register_8bit::Register8Bit;
-use gb::register::Register;
+use gb::cpu::register_8bit::Register8Bit;
+use gb::cpu::register::Register;
 use std::rc::*;
 use std::cell::RefCell;
 
