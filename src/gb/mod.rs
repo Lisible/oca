@@ -24,3 +24,4 @@
 
 pub mod console;
 mod cpu;
+mod memory;

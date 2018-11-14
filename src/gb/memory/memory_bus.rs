@@ -22,43 +22,18 @@
 * SOFTWARE.
 */
 
-use gb::cpu::cpu::CPU;
-use gb::memory::memory_bus::MemoryBus;
 use gb::memory::cartridge::Cartridge;
 
-pub struct Console {
-    cpu: CPU,
-    cartridge: Option<Cartridge>,
-    memory_bus: MemoryBus
+///
+/// Allows access to the different part of the system memory
+///
+pub struct MemoryBus {
+
 }
 
-impl Console {
-    pub fn new() -> Console {
-        Console {
-            cpu: CPU::new(),
-            cartridge: None,
-            memory_bus: MemoryBus::new(),
+impl MemoryBus {
+    pub fn new() -> MemoryBus {
+        MemoryBus {
         }
-    }
-
-    pub fn start(&mut self) {
-        self.load_rom("/home/clements/Documents/oca/t.gb");
-        self.cpu.initialize();
-
-        loop {
-            //self.cpu.emulate_cycle();
-        }
-    }
-
-    pub fn load_rom(&mut self, file: &'static str) {
-        use std::fs;
-
-        let contents = fs::read(file)
-            .expect("Error reading rom file");
-
-        let mut array = [0; 0x8000];
-        let contents = &contents[..array.len()];
-        array.copy_from_slice(contents);
-        self.cartridge = Some(Cartridge::from_bytes(array))
     }
 }
