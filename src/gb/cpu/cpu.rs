@@ -34,79 +34,6 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-const OP_NAMES: [&'static str; 256] = [
-    "NOP","LD","LD","INC","INC","DEC","LD","RLCA",
-    "LD","ADD","LD","DEC","INC","DEC","LD","RRCA",
-    "STOP","LD","LD","INC","INC","DEC","LD","RLA",
-    "JR","ADD","LD","DEC","INC","DEC","LD","RRA",
-    "JR","LD","LD","INC","INC","DEC","LD","DAA",
-    "JR","ADD","LD","DEC","INC","DEC","LD","CPL",
-    "JR","LD","LD","INC","INC","DEC","LD","SCF",
-    "JR","ADD","LD","DEC","INC","DEC","LD","CCF",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "LD","LD","LD","LD","LD","LD","HALT","LD",
-    "LD","LD","LD","LD","LD","LD","LD","LD",
-    "ADD","ADD","ADD","ADD","ADD","ADD","ADD","ADD",
-    "ADC","ADC","ADC","ADC","ADC","ADC","ADC","ADC",
-    "SUB","SUB","SUB","SUB","SUB","SUB","SUB","SUB",
-    "SBC","SBC","SBC","SBC","SBC","SBC","SBC","SBC",
-    "AND","AND","AND","AND","AND","AND","AND","AND",
-    "XOR","XOR","XOR","XOR","XOR","XOR","XOR","XOR",
-    "OR","OR","OR","OR","OR","OR","OR","OR",
-    "CP","CP","CP","CP","CP","CP","CP","CP",
-    "RET","POP","JP", "JP","CALL","PUSH","ADD","RST",
-    "RET","RET","JP","PREFIX","CALL","CALL","ADC","RST",
-    "RET","POP","JP","UNKOWN","CALL","PUSH","SUB","RST",
-    "RET","RETI","JP","UNKOWN","CALL","UNKOWN","SBC","RST",
-    "LDH","POP","LD","UNKOWN","UNKOWN","PUSH","AND","RST",
-    "ADD","JP","LD","UNKOWN","UNKOWN","UNKOWN","XOR","RST",
-    "LDH","POP","LD","DI","UNKOWN","PUSH","OR","RST",
-    "LD","LD","LD","EI","UNKOWN","UNKOWN","CP","RST"
-];
-
-const OP_CYCLES: [u8; 256] = [
-    4, 12, 8, 8, 4, 4, 8, 4, 20, 8, 8, 8, 4, 4, 8, 4,
-    4, 12, 8, 8, 4, 4, 8, 4, 12, 8, 8, 8, 4, 4, 8, 4,
-    8, 12, 8, 8, 4, 4, 8, 4, 8, 8, 8, 8, 4, 4, 8, 4,
-    8, 12, 8, 8, 12, 12, 12, 4, 8, 8, 8, 8, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    8, 8, 8, 8, 8, 8, 4, 8, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    4, 4, 4, 4, 4, 4, 8, 4, 4, 4, 4, 4, 4, 4, 8, 4,
-    8, 12, 12, 16, 12, 16, 8, 16, 8, 16, 12, 4, 12, 24, 8, 16,
-    8, 12, 12, 0, 12, 16, 8, 16, 8, 16, 12, 0, 12, 0, 8, 16,
-    12, 12, 8, 0, 0, 16, 8, 16, 16, 4, 16, 0, 0, 0, 8, 16,
-    12, 12, 8, 4, 0, 16, 8, 16, 12, 8, 16, 4, 0, 0, 8, 16
-];
-
-const OP_SIZES: [u8; 256] = [
-    1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
-    2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-    2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-    2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 1, 3, 3, 2, 1,
-    1, 1, 3, 0, 3, 1, 2, 1, 1, 1, 3, 0, 3, 0, 2, 1,
-    2, 1, 2, 0, 0, 1, 2, 1, 2, 1, 3, 0, 0, 0, 2, 1,
-    2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 3, 1, 0, 0, 2, 1
-];
-
 enum CPUFlag {
     Z,
     N,
@@ -265,15 +192,24 @@ impl CPU {
             0x05 => cycles += self.dec_register(RegisterIdentifier::B),
             // LD B,d8
             0x06 => cycles += self.ld_register_d8(RegisterIdentifier::B),
-            /*// RLCA
+            // RLCA
             0x07 => cycles += self.rlca(),
             // LD (a16),SP
             0x08 => cycles += self.ld_a16_sp(),
             // ADD HL, BC
-            0x09 => cycles += self.add_bi_register_bi_register(),
+            0x09 => cycles += self.add_bi_register_bi_register(BiRegisterIdentifier::HL, BiRegisterIdentifier::BC),
             // LD A,(BC)
-            0x10 => cycles += self.ld_a_bi_register(),*/
-
+            0x0A => cycles += self.ld_register_bi_register(RegisterIdentifier::A, BiRegisterIdentifier::BC),
+            // DEC BC
+            0x0B => cycles += self.dec_bi_register(BiRegisterIdentifier::BC),
+            // INC C
+            0x0C => cycles += self.inc_register(RegisterIdentifier::C),
+            // DEC C
+            0x0D => cycles += self.dec_register(RegisterIdentifier::C),
+            // LD C,d8
+            0x0E => cycles += self.ld_register_d8(RegisterIdentifier::C),
+            // RRCA
+            0x0F => cycles += self.rrca(),
 
             // LD DE,d16
             0x11 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::DE),
@@ -321,6 +257,11 @@ impl CPU {
         8
     }
 
+    fn dec_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+        self.bi_registers.get_mut(&register_identifier).unwrap().decrement(1);
+        8
+    }
+
     fn inc_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
         self.registers[&register_identifier].borrow_mut().increment(1);
         4
@@ -339,8 +280,113 @@ impl CPU {
         8
     }
 
-    fn rlca(&mut self) {
+    fn rlca(&mut self) -> u32 {
+        self.unset_flag(CPUFlag::Z);
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+        self.unset_flag(CPUFlag::C);
 
+
+
+        let mut value = 0;
+        {
+            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
+            value = register_a.read();
+        }
+
+
+        {
+            if (value & 0x80) != 0 {
+                self.set_flag(CPUFlag::C);
+            }
+        }
+
+        let mut register_a = self.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut();
+        let new_value = (value << 1) + (value & 0x80);
+        register_a.write(new_value);
+
+
+        4
+    }
+
+    fn rrca(&mut self) -> u32 {
+        self.unset_flag(CPUFlag::Z);
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+        self.unset_flag(CPUFlag::C);
+
+        let mut value = 0;
+
+        {
+            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
+            value = register_a.read();
+        }
+
+
+        {
+            if (value & 0x01) != 0 {
+                self.set_flag(CPUFlag::C);
+            }
+        }
+
+        let mut register_a = self.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut();
+        let mut new_value = (value >> 1);
+        if (value & 0x01) != 0 {
+            new_value = new_value | 0x80;
+        }
+
+        register_a.write(new_value);
+        4
+    }
+
+    fn ld_a16_sp(&mut self) -> u32 {
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.program_counter.increment(2);
+        self.stack_pointer.write(value);
+
+        20
+    }
+
+    fn add_bi_register_bi_register(&mut self,
+                                   first_register_identifier: BiRegisterIdentifier,
+                                   second_register_identifier: BiRegisterIdentifier) -> u32 {
+        let lhs;
+        let rhs;
+
+        {
+            let lhs_register = self.bi_registers.get(&first_register_identifier).unwrap();
+            lhs = lhs_register.read();
+            rhs = self.bi_registers[&second_register_identifier].read();
+        }
+
+        {
+            if (lhs & rhs) & (1 << 15) != 0 {
+                self.set_flag(CPUFlag::C);
+            }
+
+            if (lhs & rhs) & (1 << 11) != 0 {
+                self.set_flag(CPUFlag::H);
+            }
+        }
+
+        {
+            let mut lhs_register = self.bi_registers.get_mut(&first_register_identifier).unwrap();
+            lhs_register.write(lhs + rhs);
+        }
+
+        self.unset_flag(CPUFlag::N);
+
+        8
+    }
+
+    fn ld_register_bi_register(&mut self,
+                               register_identifier: RegisterIdentifier,
+                               bi_register_identifier: BiRegisterIdentifier) -> u32 {
+        let mut lhs_register = self.registers[&register_identifier].borrow_mut();
+        let rhs_value = self.bi_registers[&bi_register_identifier].read();
+        lhs_register.write((rhs_value >> 8) as u8); // TODO ??
+
+        8
     }
 
     ///
