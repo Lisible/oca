@@ -53,13 +53,13 @@ impl Register<u16> for BiRegister8Bit {
         ((self.first.borrow().read() as u16) << 8) | (self.second.borrow().read() as u16)
     }
 
-    fn increment(&mut self) {
-        let value = self.read()+1;
-        self.write(value);
+    fn increment(&mut self, value: u16) {
+        let new_value = self.read() + value;
+        self.write(new_value);
     }
-    fn decrement(&mut self) {
-        let value = self.read()-1;
-        self.write(value);
+    fn decrement(&mut self, value: u16) {
+        let new_value = self.read() - value;
+        self.write(new_value);
     }
 }
 

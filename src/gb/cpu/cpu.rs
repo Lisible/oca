@@ -107,6 +107,12 @@ const OP_SIZES: [u8; 256] = [
     2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 3, 1, 0, 0, 2, 1
 ];
 
+enum CPUFlag {
+    Z,
+    N,
+    H,
+    C
+}
 
 ///
 /// Represents the GameBoy CPU
@@ -139,6 +145,7 @@ pub struct CPU {
 }
 
 impl CPU {
+
     pub fn new(memory_bus : Rc<RefCell<MemoryBus>>) -> CPU {
         let mut registers = HashMap::new();
         registers.insert(RegisterIdentifier::A, Rc::new(RefCell::new(Register8Bit::new())));
@@ -174,6 +181,59 @@ impl CPU {
     }
 
     ///
+    /// Params:
+    /// - flag: CPUFlag = The identifier of the desired flag
+    ///
+    /// Returns:
+    /// - The value of the flag
+    ///
+    fn get_flag(&self, flag: CPUFlag) -> bool {
+        let register_f_value = self.registers[&RegisterIdentifier::F].borrow().read();
+        match flag {
+            CPUFlag::Z => (register_f_value & (1 << 7)) != 0,
+            CPUFlag::N => (register_f_value & (1 << 6)) != 0,
+            CPUFlag::H => (register_f_value & (1 << 5)) != 0,
+            CPUFlag::C => (register_f_value & (1 << 4)) != 0,
+        }
+    }
+
+    ///
+    /// Sets a flag
+    ///
+    /// Params:
+    /// - flag: CPUFlag = The flag to set
+    ///
+    fn set_flag(&mut self, flag: CPUFlag) {
+        let mut register_f = self.registers[&RegisterIdentifier::F].borrow_mut();
+        let register_f_value = register_f.read();
+
+        match flag {
+            CPUFlag::Z => register_f.write(register_f_value | (1 << 7)),
+            CPUFlag::N => register_f.write(register_f_value | (1 << 6)),
+            CPUFlag::H => register_f.write(register_f_value | (1 << 5)),
+            CPUFlag::C => register_f.write(register_f_value | (1 << 4)),
+        }
+    }
+
+    ///
+    /// Unsets a flag
+    ///
+    /// Params:
+    /// - flag: CPUFlag = The flag to unset
+    ///
+    fn unset_flag(&mut self, flag: CPUFlag) {
+        let mut register_f = self.registers[&RegisterIdentifier::F].borrow_mut();
+        let register_f_value = register_f.read();
+
+        match flag {
+            CPUFlag::Z => register_f.write(register_f_value & !(1 << 7)),
+            CPUFlag::N => register_f.write(register_f_value & !(1 << 6)),
+            CPUFlag::H => register_f.write(register_f_value & !(1 << 5)),
+            CPUFlag::C => register_f.write(register_f_value & !(1 << 4)),
+        }
+    }
+
+    ///
     /// Sets the registers up for running the emulator
     /// 
     pub fn initialize(&mut self) {
@@ -189,7 +249,7 @@ impl CPU {
         let mut cycles = 0;
 
         let opcode = self.program_counter.read();
-        self.program_counter.increment();
+        self.program_counter.increment(1);
         match opcode {
             // NOP
             0x00 => cycles += self.nop(),
@@ -228,18 +288,24 @@ impl CPU {
         }
     }
 
+
+
     fn nop(&mut self) -> u32 {
         4
     }
 
     fn ld_bi_register_d16(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
         let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.program_counter.increment(2);
+
         self.write_bi_register(register_identifier, value);
         12
     }
 
     fn ld_sp_d16(&mut self) -> u32 {
         let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.program_counter.increment(2);
+
         self.program_counter.write(value);
         12
     }
@@ -251,22 +317,24 @@ impl CPU {
     }
 
     fn inc_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
-        self.bi_registers.get_mut(&register_identifier).unwrap().increment();
+        self.bi_registers.get_mut(&register_identifier).unwrap().increment(1);
         8
     }
 
     fn inc_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
-        self.registers[&register_identifier].borrow_mut().increment();
+        self.registers[&register_identifier].borrow_mut().increment(1);
         4
     }
 
     fn dec_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
-        self.registers[&register_identifier].borrow_mut().decrement();
+        self.registers[&register_identifier].borrow_mut().decrement(1);
         4
     }
 
     fn ld_register_d8(&mut self, register_identifier: RegisterIdentifier) -> u32 {
         let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
+        self.program_counter.increment(1);
+
         self.write_register(register_identifier, value);
         8
     }
@@ -364,6 +432,50 @@ mod test {
         cpu.bi_registers.get_mut(&BiRegisterIdentifier::AF).unwrap().write(0x1234);
 
         assert_eq!(cpu.read_bi_register(BiRegisterIdentifier::AF), 0x1234);
+    }
+
+    #[test]
+    fn can_set_flag() {
+        let mut cpu = create_cpu();
+
+        {
+            let register_f = cpu.registers[&RegisterIdentifier::F].borrow();
+            assert_eq!(register_f.read(), 0x00);
+        }
+
+        cpu.set_flag(CPUFlag::Z);
+
+        {
+            let register_f = cpu.registers[&RegisterIdentifier::F].borrow();
+            assert_eq!(register_f.read(), 0b10000000);
+        }
+    }
+
+    #[test]
+    fn can_unset_flag() {
+        let mut cpu = create_cpu();
+
+        {
+            let mut register_f = cpu.registers[&RegisterIdentifier::F].borrow_mut();
+            register_f.write(0b01000000);
+            assert_eq!(register_f.read(), 0b01000000);
+        }
+
+        cpu.unset_flag(CPUFlag::N);
+
+        {
+            let mut register_f = cpu.registers[&RegisterIdentifier::F].borrow_mut();
+            assert_eq!(register_f.read(), 0b00000000);
+        }
+    }
+
+    #[test]
+    fn can_get_flag() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::H);
+
+        assert_eq!(cpu.get_flag(CPUFlag::H), true);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
     }
 }
 

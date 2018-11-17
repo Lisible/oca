@@ -49,10 +49,10 @@ impl Register<u16> for Register16Bit {
     fn read(&self) -> u16 {
         self.value
     }
-    fn increment(&mut self) {
-        self.value += 1
+    fn increment(&mut self, value: u16) {
+        self.value += value
     }
-    fn decrement(&mut self) {
-        self.value -= 1;
+    fn decrement(&mut self, value: u16) {
+        self.value -= value;
     }
 }

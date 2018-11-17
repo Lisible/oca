@@ -48,9 +48,9 @@ pub trait Register<T> {
     ///
     /// Increments the value
     ///
-    fn increment(&mut self);
+    fn increment(&mut self, value: T);
     ///
     /// Decrements the value
     ///
-    fn decrement(&mut self);
+    fn decrement(&mut self, value: T);
 }
