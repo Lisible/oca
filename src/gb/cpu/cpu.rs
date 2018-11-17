@@ -183,7 +183,7 @@ impl CPU {
             // LD BC,d16
             0x01 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::BC),
             // LD (BC),A
-            0x02 => cycles += self.ld_bi_register_a(BiRegisterIdentifier::BC),
+            0x02 => cycles += self.ld_bi_register_register(BiRegisterIdentifier::BC, RegisterIdentifier::A),
             // INC BC
             0x03 => cycles += self.inc_bi_register(BiRegisterIdentifier::BC),
             // INC B
@@ -214,7 +214,7 @@ impl CPU {
             // LD DE,d16
             0x11 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::DE),
             // LD (BC),A
-            0x12 => cycles += self.ld_bi_register_a(BiRegisterIdentifier::DE),
+            0x12 => cycles += self.ld_bi_register_register(BiRegisterIdentifier::DE, RegisterIdentifier::A),
             // LD HL,d16
             0x21 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::HL),
             // LD SP,d16
@@ -246,28 +246,30 @@ impl CPU {
         12
     }
 
-    fn ld_bi_register_a(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
-        let value = self.read_register(RegisterIdentifier::A);
-        self.write_bi_register(register_identifier, value as u16);
+    fn ld_bi_register_register(&mut self,
+                               bi_register_identifier: BiRegisterIdentifier,
+                               register_identifier: RegisterIdentifier) -> u32 {
+        let value = self.read_register(register_identifier);
+        self.write_bi_register(bi_register_identifier, value as u16);
         8
     }
 
-    fn inc_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+    fn inc_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 { // TODO update cf spec
         self.bi_registers.get_mut(&register_identifier).unwrap().increment(1);
         8
     }
 
-    fn dec_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+    fn dec_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 { // TODO update cf spec
         self.bi_registers.get_mut(&register_identifier).unwrap().decrement(1);
         8
     }
 
-    fn inc_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
+    fn inc_register(&mut self, register_identifier: RegisterIdentifier) -> u32 { // TODO update cf spec
         self.registers[&register_identifier].borrow_mut().increment(1);
         4
     }
 
-    fn dec_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
+    fn dec_register(&mut self, register_identifier: RegisterIdentifier) -> u32 { // TODO update cf spec
         self.registers[&register_identifier].borrow_mut().decrement(1);
         4
     }
