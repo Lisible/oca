@@ -47,4 +47,10 @@ impl Register<u8> for Register8Bit {
     fn read(&self) -> u8 {
         self.value
     }
+    fn increment(&mut self) {
+        self.value += 1;
+    }
+    fn decrement(&mut self) {
+        self.value -= 1;
+    }
 }

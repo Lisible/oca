@@ -22,37 +22,37 @@
 * SOFTWARE.
 */
 
-use gb::memory::cartridge::Cartridge;
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::u16;
+
+use gb::cpu::register::*;
 
 ///
-/// Allows access to the different part of the system memory
+/// Represents an 16-bit register
 ///
-pub struct MemoryBus {
-    cartridge: Rc<RefCell<Cartridge>>,
+#[derive(Clone)]
+pub struct Register16Bit {
+    value: u16
 }
 
-impl MemoryBus {
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>) -> MemoryBus {
-        MemoryBus {
-            cartridge
+impl Register16Bit {
+    pub fn new() -> Register16Bit {
+        Register16Bit {
+            value: 0
         }
     }
+}
 
-    pub fn read_8bit(&self, address: usize) -> u8 {
-        if address < 0x8000 {
-            self.cartridge.borrow().read_8bit(address)
-        } else {
-            panic!("Unmapped memory access")
-        }
+impl Register<u16> for Register16Bit {
+    fn write(&mut self, value: u16) {
+        self.value = value;
     }
-
-    pub fn read_16bit(&self, address: usize) -> u16 {
-        if address < 0x8000 {
-            self.cartridge.borrow().read_16bit(address)
-        } else {
-            panic!("Unmapped memory access")
-        }
+    fn read(&self) -> u16 {
+        self.value
+    }
+    fn increment(&mut self) {
+        self.value += 1
+    }
+    fn decrement(&mut self) {
+        self.value -= 1;
     }
 }

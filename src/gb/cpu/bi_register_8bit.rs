@@ -52,6 +52,13 @@ impl Register<u16> for BiRegister8Bit {
     fn read(&self) -> u16 {
         ((self.first.borrow().read() as u16) << 8) | (self.second.borrow().read() as u16)
     }
+
+    fn increment(&mut self) {
+        self.write(self.read()+1);
+    }
+    fn decrement(&mut self) {
+        self.write(self.read()-1);
+    }
 }
 
 #[cfg(test)]

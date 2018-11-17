@@ -26,27 +26,34 @@ use gb::cpu::cpu::CPU;
 use gb::memory::memory_bus::MemoryBus;
 use gb::memory::cartridge::Cartridge;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 pub struct Console {
     cpu: CPU,
-    cartridge: Option<Cartridge>,
-    memory_bus: MemoryBus
+    cartridge: Rc<RefCell<Cartridge>>,
+    memory_bus: Rc<RefCell<MemoryBus>>
 }
 
 impl Console {
     pub fn new() -> Console {
+        let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0;0x8000])));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone())));
+        let cpu = CPU::new(memory_bus.clone());
+
         Console {
-            cpu: CPU::new(),
-            cartridge: None,
-            memory_bus: MemoryBus::new(),
+            cpu,
+            cartridge,
+            memory_bus,
         }
     }
 
     pub fn start(&mut self) {
-        self.load_rom("/home/clements/Documents/oca/t.gb");
+        self.load_rom("/home/clements/Documents/t.gb");
         self.cpu.initialize();
 
         loop {
-            //self.cpu.emulate_cycle();
+            self.cpu.step();
         }
     }
 
@@ -59,6 +66,6 @@ impl Console {
         let mut array = [0; 0x8000];
         let contents = &contents[..array.len()];
         array.copy_from_slice(contents);
-        self.cartridge = Some(Cartridge::from_bytes(array))
+        self.cartridge.replace(Cartridge::from_bytes([0;0x8000]));
     }
 }

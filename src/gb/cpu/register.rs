@@ -44,4 +44,13 @@ pub trait Register<T> {
     /// - The value of the register
     ///
     fn read(&self) -> T;
+
+    ///
+    /// Increments the value
+    ///
+    fn increment(&mut self);
+    ///
+    /// Decrements the value
+    ///
+    fn decrement(&mut self);
 }

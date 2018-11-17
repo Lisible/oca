@@ -22,10 +22,14 @@
 * SOFTWARE.
 */
 
+use std::usize;
+
 use gb::cpu::register::Register;
 use gb::cpu::register_identifier::*;
 use gb::cpu::register_8bit::*;
+use gb::cpu::register_16bit::*;
 use gb::cpu::bi_register_8bit::*;
+use gb::memory::memory_bus::MemoryBus;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -122,15 +126,20 @@ pub struct CPU {
     ///
     /// The stack pointer, points to the current stack position
     ///
-    stack_pointer: u16,
+    stack_pointer: Register16Bit,
     ///
     /// Program counter, points to the next instruction to be executed
     ///
-    program_counter: u16,
+    program_counter: Register16Bit,
+
+    ///
+    /// A reference to the memory bus used by the CPU
+    ///
+    memory_bus: Rc<RefCell<MemoryBus>>
 }
 
 impl CPU {
-    pub fn new() -> CPU {
+    pub fn new(memory_bus : Rc<RefCell<MemoryBus>>) -> CPU {
         let mut registers = HashMap::new();
         registers.insert(RegisterIdentifier::A, Rc::new(RefCell::new(Register8Bit::new())));
         registers.insert(RegisterIdentifier::B, Rc::new(RefCell::new(Register8Bit::new())));
@@ -158,8 +167,9 @@ impl CPU {
         CPU {
             registers,
             bi_registers,
-            stack_pointer: 0,
-            program_counter: 0,
+            stack_pointer: Register16Bit::new(),
+            program_counter: Register16Bit::new(),
+            memory_bus
         }
     }
 
@@ -168,8 +178,101 @@ impl CPU {
     /// 
     pub fn initialize(&mut self) {
         self.registers.iter_mut().for_each(|(_, r)| r.borrow_mut().write(0x00));
-        self.program_counter = 0x100;
-        self.stack_pointer = 0xFFFE;
+        self.program_counter.write(0x0);
+        self.stack_pointer.write(0xFFFE);
+    }
+
+    ///
+    /// Emulates a single CPU step
+    ///
+    pub fn step(&mut self) {
+        let mut cycles = 0;
+
+        let opcode = self.program_counter.read();
+        self.program_counter.increment();
+        match opcode {
+            // NOP
+            0x00 => cycles += self.nop(),
+            // LD BC,d16
+            0x01 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::BC),
+            // LD (BC),A
+            0x02 => cycles += self.ld_bi_register_a(BiRegisterIdentifier::BC),
+            // INC BC
+            0x03 => cycles += self.inc_bi_register(BiRegisterIdentifier::BC),
+            // INC B
+            0x04 => cycles += self.inc_register(RegisterIdentifier::B),
+            // DEC B
+            0x05 => cycles += self.dec_register(RegisterIdentifier::B),
+            // LD B,d8
+            0x06 => cycles += self.ld_register_d8(RegisterIdentifier::B),
+            // RLCA
+            0x07 => cycles += self.rlca(),
+            // LD (a16),SP
+            0x08 => cycles += self.ld_a16_sp(),
+            // ADD HL, BC
+            0x09 => cycles += self.add_bi_register_bi_register(),
+            // LD A,(BC)
+            0x10 => cycles += self.ld_a_bi_register(),
+
+
+            // LD DE,d16
+            0x11 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::DE),
+            // LD (BC),A
+            0x12 => cycles += self.ld_bi_register_a(BiRegisterIdentifier::DE),
+            // LD HL,d16
+            0x21 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::HL),
+            // LD SP,d16
+            0x31 => cycles += self.ld_sp_d16(),
+
+            _ => panic!("Unimplemented instruction")
+        }
+    }
+
+    fn nop(&mut self) -> u32 {
+        4
+    }
+
+    fn ld_bi_register_d16(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.write_bi_register(register_identifier, value);
+        12
+    }
+
+    fn ld_sp_d16(&mut self) -> u32 {
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.program_counter.write(value);
+        12
+    }
+
+    fn ld_bi_register_a(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+        let value = self.read_register(RegisterIdentifier::A);
+        self.write_bi_register(register_identifier, value as u16);
+        8
+    }
+
+    fn inc_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
+        self.bi_registers[&register_identifier].increment();
+        8
+    }
+
+    fn inc_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
+        self.registers[&register_identifier].borrow_mut().increment();
+        4
+    }
+
+    fn dec_register(&mut self, register_identifier: RegisterIdentifier) -> u32 {
+        self.registers[&register_identifier].borrow_mut().decrement();
+        4
+    }
+
+    fn ld_register_d8(&mut self, register_identifier: RegisterIdentifier) -> u32 {
+        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
+        self.write_register(register_identifier, value);
+        8
+    }
+
+    fn rlca(&mut self) {
+
     }
 
     ///
@@ -223,10 +326,17 @@ impl CPU {
 mod test {
 
     use super::*;
+    use gb::memory::cartridge::*;
+
+    fn create_cpu() -> CPU {
+        let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone())));
+        CPU::new(memory_bus.clone())
+    }
 
     #[test]
     fn can_write_to_register() {
-        let mut cpu = CPU::new();
+        let mut cpu = create_cpu();
         cpu.write_register(RegisterIdentifier::A, 0x15);
 
         assert_eq!(cpu.registers.get(&RegisterIdentifier::A).unwrap().borrow().read(), 0x15);
@@ -234,7 +344,7 @@ mod test {
 
     #[test]
     fn can_read_from_register() {
-        let mut cpu = CPU::new();
+        let mut cpu = create_cpu();
         cpu.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut().write(0x05);
 
         assert_eq!(cpu.read_register(RegisterIdentifier::A), 0x05);
@@ -242,7 +352,7 @@ mod test {
 
     #[test]
     fn can_write_to_bi_register() {
-        let mut cpu = CPU::new();
+        let mut cpu = create_cpu();
         cpu.write_bi_register(BiRegisterIdentifier::AF, 0x1234);
 
         assert_eq!(cpu.bi_registers.get(&BiRegisterIdentifier::AF).unwrap().read(), 0x1234);
@@ -250,7 +360,7 @@ mod test {
 
     #[test]
     fn can_read_from_bi_register() {
-        let mut cpu = CPU::new();
+        let mut cpu = create_cpu();
         cpu.bi_registers.get_mut(&BiRegisterIdentifier::AF).unwrap().write(0x1234);
 
         assert_eq!(cpu.read_bi_register(BiRegisterIdentifier::AF), 0x1234);
