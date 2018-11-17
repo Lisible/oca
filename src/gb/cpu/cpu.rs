@@ -205,14 +205,14 @@ impl CPU {
             0x05 => cycles += self.dec_register(RegisterIdentifier::B),
             // LD B,d8
             0x06 => cycles += self.ld_register_d8(RegisterIdentifier::B),
-            // RLCA
+            /*// RLCA
             0x07 => cycles += self.rlca(),
             // LD (a16),SP
             0x08 => cycles += self.ld_a16_sp(),
             // ADD HL, BC
             0x09 => cycles += self.add_bi_register_bi_register(),
             // LD A,(BC)
-            0x10 => cycles += self.ld_a_bi_register(),
+            0x10 => cycles += self.ld_a_bi_register(),*/
 
 
             // LD DE,d16
@@ -251,7 +251,7 @@ impl CPU {
     }
 
     fn inc_bi_register(&mut self, register_identifier: BiRegisterIdentifier) -> u32 {
-        self.bi_registers[&register_identifier].increment();
+        self.bi_registers.get_mut(&register_identifier).unwrap().increment();
         8
     }
 

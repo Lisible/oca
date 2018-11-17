@@ -54,10 +54,12 @@ impl Register<u16> for BiRegister8Bit {
     }
 
     fn increment(&mut self) {
-        self.write(self.read()+1);
+        let value = self.read()+1;
+        self.write(value);
     }
     fn decrement(&mut self) {
-        self.write(self.read()-1);
+        let value = self.read()-1;
+        self.write(value);
     }
 }
 
