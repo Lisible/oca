@@ -22,6 +22,8 @@
 * SOFTWARE.
 */
 
+use std::usize;
+
 pub struct Cartridge {
     data: [u8; 0x8000]
 }
@@ -53,8 +55,7 @@ enum CartridgeType {
     PocketCamera,
     BandaiTama5,
     HudsonHuc3,
-    HudsonHuc1,
-    Unknwown
+    HudsonHuc1
 }
 
 impl Cartridge {
@@ -77,8 +78,21 @@ impl Cartridge {
     /// Returns:
     /// - The data at the given address
     ///
-    pub fn read(&self, address: usize) -> u8 {
+    pub fn read_8bit(&self, address: usize) -> u8 {
         self.data[address]
+    }
+
+    ///
+    /// Reads data from the cartridge
+    ///
+    /// Params:
+    /// - address: usize = The address of the data to read
+    ///
+    /// Returns:
+    /// - The data at the given address
+    ///
+    pub fn read_16bit(&self, address: usize) -> u16 {
+        (self.data[address] as u16) | ((self.data[address.wrapping_add(1)] as u16) << 8)
     }
 
     ///
@@ -86,7 +100,7 @@ impl Cartridge {
     /// - The type of cartridge
     ///
     pub fn get_type(&self) -> CartridgeType {
-        match self.read(0x0147) {
+        match self.read_8bit(0x0147) {
             0x0 => CartridgeType::RomOnly,
             0x1 => CartridgeType::RomMbc1,
             0x2 => CartridgeType::RomMbc1Ram,
@@ -135,7 +149,7 @@ mod test {
     }
 
     #[test]
-    fn can_read_cartridge() {
+    fn can_read_8bit_from_cartridge() {
         let mut bytes : [u8; 0x8000] = [0; 0x8000];
 
         for i in 0..0x8000 {
@@ -143,7 +157,20 @@ mod test {
         }
 
         let cartridge = Cartridge::from_bytes(bytes);
-        assert_eq!(cartridge.read(0x8), 0x8);
+        assert_eq!(cartridge.read_8bit(0x8), 0x8);
+    }
+
+    #[test]
+    fn can_read_16bit_from_cartridge() {
+        let mut bytes : [u8; 0x8000] = [0; 0x8000];
+
+        for i in (0..0x8000).step_by(2) {
+            bytes[i] = 0xCD;
+            bytes[i+1] = 0xAB;
+        }
+
+        let cartridge = Cartridge::from_bytes(bytes);
+        assert_eq!(cartridge.read_16bit(0x0), 0xABCD);
     }
 
     #[test]
