@@ -122,3 +122,76 @@ impl WriteMemory for MemoryBus {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn create_bus() -> MemoryBus {
+        let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0;0x8000])));
+        let ram = Rc::new(RefCell::new(Ram::new()));
+
+        MemoryBus::new(cartridge.clone(),
+                       ram.clone())
+    }
+
+    #[test]
+    fn can_read_8bit_from_ram() {
+        let mut bus = create_bus();
+        bus.ram.borrow_mut().write_8bit(0x10, 0x11);
+
+        assert_eq!(bus.read_8bit(0xC010), 0x11);
+        assert_eq!(bus.read_8bit(0xE010), 0x11);
+    }
+
+    #[test]
+    fn can_read_8bit_signed_from_ram() {
+        let mut bus = create_bus();
+        bus.ram.borrow_mut().write_8bit_signed(0x10, 0x11i8);
+
+        assert_eq!(bus.read_8bit_signed(0xC010), 0x11i8);
+        assert_eq!(bus.read_8bit_signed(0xE010), 0x11i8);
+    }
+
+    #[test]
+    fn can_read_16bit_from_ram() {
+        let mut bus = create_bus();
+        bus.ram.borrow_mut().write_16bit(0x10, 0x1122);
+
+        assert_eq!(bus.read_16bit(0xC010), 0x1122);
+        assert_eq!(bus.read_16bit(0xE010), 0x1122);
+    }
+
+    #[test]
+    fn can_write_8bit_to_ram() {
+        let mut bus = create_bus();
+        bus.write_8bit(0xC010, 0x11);
+        assert_eq!(bus.ram.borrow().read_8bit(0x10), 0x11);
+
+
+        bus.write_8bit(0xE010, 0x12);
+        assert_eq!(bus.ram.borrow().read_8bit(0x10), 0x12);
+    }
+
+    #[test]
+    fn can_write_8bit_signed_to_ram() {
+        let mut bus = create_bus();
+
+        bus.write_8bit_signed(0xC010, 0x11i8);
+        assert_eq!(bus.ram.borrow().read_8bit_signed(0x10), 0x11i8);
+
+        bus.write_8bit_signed(0xC010, 0x12i8);
+        assert_eq!(bus.ram.borrow().read_8bit_signed(0x10), 0x12i8);
+    }
+
+    #[test]
+    fn can_write_16bit_to_ram() {
+        let mut bus = create_bus();
+
+        bus.write_16bit(0xC010, 0x1122);
+        assert_eq!(bus.ram.borrow().read_16bit(0x10), 0x1122);
+
+        bus.write_16bit(0xE010, 0x1123);
+        assert_eq!(bus.ram.borrow().read_16bit(0x10), 0x1123);
+    }
+}
