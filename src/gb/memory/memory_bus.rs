@@ -48,6 +48,30 @@ impl MemoryBus {
         }
     }
 
+    pub fn write_8bit(&self, address: usize, value: u8) {
+        if address < 0x8000 {
+            #[cfg(test)]
+            {
+                self.cartridge.borrow_mut().write(address, value)
+            }
+
+            #[cfg(not(test))]
+            {
+                panic!("Cartridge ROM is read-only !!!")
+            }
+        } else {
+            panic!("Unmapped memory access")
+        }
+    }
+
+    pub fn read_8bit_signed(&self, address: usize) -> i8 {
+        if address < 0x8000 {
+            self.cartridge.borrow().read_8bit(address) as i8
+        } else {
+            panic!("Unmapped memory access")
+        }
+    }
+
     pub fn read_16bit(&self, address: usize) -> u16 {
         if address < 0x8000 {
             self.cartridge.borrow().read_16bit(address)

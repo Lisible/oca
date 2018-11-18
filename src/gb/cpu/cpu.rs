@@ -68,7 +68,9 @@ pub struct CPU {
     ///
     /// A reference to the memory bus used by the CPU
     ///
-    memory_bus: Rc<RefCell<MemoryBus>>
+    memory_bus: Rc<RefCell<MemoryBus>>,
+
+    stopped: bool,
 }
 
 impl CPU {
@@ -103,7 +105,8 @@ impl CPU {
             bi_registers,
             stack_pointer: Register16Bit::new(),
             program_counter: Register16Bit::new(),
-            memory_bus
+            memory_bus,
+            stopped: false
         }
     }
 
@@ -210,11 +213,39 @@ impl CPU {
             0x0E => cycles += self.ld_register_d8(RegisterIdentifier::C),
             // RRCA
             0x0F => cycles += self.rrca(),
-
+            // STOP 0
+            0x10 => cycles += self.stop_0(),
             // LD DE,d16
             0x11 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::DE),
-            // LD (BC),A
+            // LD (DE),A
             0x12 => cycles += self.ld_bi_register_register(BiRegisterIdentifier::DE, RegisterIdentifier::A),
+            // INC DE
+            0x13 => cycles += self.inc_bi_register(BiRegisterIdentifier::DE),
+            // INC D
+            0x14 => cycles += self.inc_register(RegisterIdentifier::D),
+            // DEC D
+            0x15 => cycles += self.dec_register(RegisterIdentifier::D),
+            // LD D,d8
+            0x16 => cycles += self.ld_register_d8(RegisterIdentifier::D),
+            // RLA
+            0x17 => cycles += self.rla(),
+            // JR r8
+            0x18 => cycles += self.jr_r8(),
+            // ADD HL,DE
+            0x19 => cycles += self.add_bi_register_bi_register(BiRegisterIdentifier::HL, BiRegisterIdentifier::DE),
+            // LD A,(DE)
+            0x1A => cycles += self.ld_register_bi_register(RegisterIdentifier::A, BiRegisterIdentifier::DE),
+            // DEC DE
+            0x1B => cycles += self.dec_bi_register(BiRegisterIdentifier::DE),
+            // INC E
+            0x1C => cycles += self.inc_register(RegisterIdentifier::E),
+            // DEC E
+            0x1D => cycles += self.dec_register(RegisterIdentifier::E),
+            // LD E,d8
+            0x1E => cycles += self.ld_register_d8(RegisterIdentifier::E),
+            // RRA
+            0x1F => cycles += self.rra(),
+
             // LD HL,d16
             0x21 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::HL),
             // LD SP,d16
@@ -304,9 +335,44 @@ impl CPU {
         }
 
         let mut register_a = self.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut();
-        let new_value = (value << 1) + (value & 0x80);
+        let new_value = (value << 1) | ((value & 0x80) >> 7);
         register_a.write(new_value);
 
+
+        4
+    }
+
+
+
+    fn rla(&mut self) -> u32 {
+        let carry_flag = self.get_flag(CPUFlag::C) as u8;
+
+        let mut value;
+
+        {
+            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
+            value = register_a.read();
+        }
+
+
+        {
+            if (value & 0x80) != 0 {
+                self.set_flag(CPUFlag::C);
+            }
+            else {
+                self.unset_flag(CPUFlag::C);
+            }
+        }
+
+        {
+            let mut register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow_mut();
+            let new_value = ((value << 1) & 0xFF) | carry_flag;
+            register_a.write(new_value);
+        }
+
+        self.unset_flag(CPUFlag::Z);
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
 
         4
     }
@@ -341,6 +407,39 @@ impl CPU {
         4
     }
 
+    fn rra(&mut self) -> u32 {
+        let carry_flag = self.get_flag(CPUFlag::C) as u8;
+
+        let mut value;
+
+        {
+            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
+            value = register_a.read();
+        }
+
+
+        {
+            if (value & 0x01) != 0 {
+                self.set_flag(CPUFlag::C);
+            }
+            else {
+                self.unset_flag(CPUFlag::C);
+            }
+        }
+
+        {
+            let mut register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow_mut();
+            let new_value = ((value >> 1) & 0xFF) | (carry_flag << 7);
+            register_a.write(new_value);
+        }
+
+        self.unset_flag(CPUFlag::Z);
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+
+        4
+    }
+
     fn ld_a16_sp(&mut self) -> u32 {
         let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
         self.program_counter.increment(2);
@@ -372,7 +471,7 @@ impl CPU {
         }
 
         {
-            let mut lhs_register = self.bi_registers.get_mut(&first_register_identifier).unwrap();
+            let lhs_register = self.bi_registers.get_mut(&first_register_identifier).unwrap();
             lhs_register.write(lhs + rhs);
         }
 
@@ -389,6 +488,19 @@ impl CPU {
         lhs_register.write((rhs_value >> 8) as u8); // TODO ??
 
         8
+    }
+
+    fn stop_0(&mut self) -> u32 {
+        self.program_counter.increment(1);
+        self.stopped = true;
+        4
+    }
+
+    fn jr_r8(&mut self) -> u32 {
+        let value = self.memory_bus.borrow().read_8bit_signed(self.program_counter.read() as usize);
+        let pc = self.program_counter.read();
+        self.program_counter.write((pc as i32 + value as i32) as u16);
+        12
     }
 
     ///
@@ -524,6 +636,104 @@ mod test {
 
         assert_eq!(cpu.get_flag(CPUFlag::H), true);
         assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_rla_carry0() {
+        let mut cpu = create_cpu();
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rla();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b10100010);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_rlca() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rlca();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b10100011);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_rlca_2() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b01010001);
+        cpu.rlca();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b10100010);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false)
+    }
+
+    #[test]
+    fn instruction_rla_carry1() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rla();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b10100011);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_rrca() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rrca();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b11101000);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_rrca_2() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b11010000);
+        cpu.rrca();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b01101000);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false)
+    }
+
+    #[test]
+    fn instruction_rra_carry0() {
+        let mut cpu = create_cpu();
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rra();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b01101000);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_rra_carry1() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.write_register(RegisterIdentifier::A, 0b11010001);
+        cpu.rra();
+
+        assert_eq!(cpu.read_register(RegisterIdentifier::A), 0b11101000);
+        assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_jr_r8() {
+        let mut cpu = create_cpu();
+        cpu.memory_bus.borrow_mut().write_8bit(0x02, 0x05);
+        cpu.program_counter.write(0x02);
+
+        cpu.jr_r8();
+
+        let pc = cpu.program_counter.read();
+        assert_eq!(pc, 0x07);
     }
 }
 

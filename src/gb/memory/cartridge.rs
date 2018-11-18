@@ -130,6 +130,11 @@ impl Cartridge {
             _ => panic!("Unknown cartridge type")
         }
     }
+
+    #[cfg(test)]
+    pub fn write(&mut self, address: usize, value: u8) {
+        self.data[address] = value;
+    }
 }
 
 #[cfg(test)]
