@@ -187,7 +187,7 @@ impl CPU {
             // LD BC,d16
             0x01 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::BC),
             // LD (BC),A
-            0x02 => cycles += self.ld_bi_register_register(BiRegisterIdentifier::BC, RegisterIdentifier::A),
+            0x02 => cycles += self.ld_bi_register_ptr_register(BiRegisterIdentifier::BC, RegisterIdentifier::A),
             // INC BC
             0x03 => cycles += self.inc_bi_register(BiRegisterIdentifier::BC),
             // INC B
@@ -199,11 +199,11 @@ impl CPU {
             // RLCA
             0x07 => cycles += self.rlca(),
             // LD (a16),SP
-            0x08 => cycles += self.ld_a16_sp(),
+            0x08 => cycles += self.ld_a16_ptr_sp(),
             // ADD HL, BC
             0x09 => cycles += self.add_bi_register_bi_register(BiRegisterIdentifier::HL, BiRegisterIdentifier::BC),
             // LD A,(BC)
-            0x0A => cycles += self.ld_register_bi_register(RegisterIdentifier::A, BiRegisterIdentifier::BC),
+            0x0A => cycles += self.ld_register_bi_register_ptr(RegisterIdentifier::A, BiRegisterIdentifier::BC),
             // DEC BC
             0x0B => cycles += self.dec_bi_register(BiRegisterIdentifier::BC),
             // INC C
@@ -219,7 +219,7 @@ impl CPU {
             // LD DE,d16
             0x11 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::DE),
             // LD (DE),A
-            0x12 => cycles += self.ld_bi_register_register(BiRegisterIdentifier::DE, RegisterIdentifier::A),
+            0x12 => cycles += self.ld_bi_register_ptr_register(BiRegisterIdentifier::DE, RegisterIdentifier::A),
             // INC DE
             0x13 => cycles += self.inc_bi_register(BiRegisterIdentifier::DE),
             // INC D
@@ -235,7 +235,7 @@ impl CPU {
             // ADD HL,DE
             0x19 => cycles += self.add_bi_register_bi_register(BiRegisterIdentifier::HL, BiRegisterIdentifier::DE),
             // LD A,(DE)
-            0x1A => cycles += self.ld_register_bi_register(RegisterIdentifier::A, BiRegisterIdentifier::DE),
+            0x1A => cycles += self.ld_register_bi_register_ptr(RegisterIdentifier::A, BiRegisterIdentifier::DE),
             // DEC DE
             0x1B => cycles += self.dec_bi_register(BiRegisterIdentifier::DE),
             // INC E
@@ -246,9 +246,41 @@ impl CPU {
             0x1E => cycles += self.ld_register_d8(RegisterIdentifier::E),
             // RRA
             0x1F => cycles += self.rra(),
-
+            // JR NZ,r8
             // LD HL,d16
             0x21 => cycles += self.ld_bi_register_d16(BiRegisterIdentifier::HL),
+            // LD (HL+),A
+            // INC HL
+            // INC H
+            // DEC H
+            // LD H,d8
+            // DAA
+            // JR Z,r8
+            // ADD HL,HL
+            // LD A,(HL+)
+            // DEC HL
+            // INC L
+            // DEC L
+            // LD L,d8
+            // CPL
+            // JR NC,r8
+            // LD SP,d16
+            // LD(HL-),A
+            // INC SP
+            // INC (HL)
+            // DEC (HL)
+            // LD (HL),d8
+            // SCF
+            // JR C,r8
+            // ADD HL,SP
+            // LD A,(HL-)
+            // DEC SP
+            // INC A
+            // DEC A
+            // LD A,d8
+            // CCF
+
+
             // LD SP,d16
             0x31 => cycles += self.ld_sp_d16(),
 
@@ -448,6 +480,14 @@ impl CPU {
         20
     }
 
+    fn ld_a16_ptr_sp(&mut self) -> u32 {
+        let mut address = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        self.program_counter.increment(2);
+        let value = self.stack_pointer.read();
+        self.memory_bus.borrow_mut().write_16bit(address as usize, value);
+        20
+    }
+
     fn add_bi_register_bi_register(&mut self,
                                    first_register_identifier: BiRegisterIdentifier,
                                    second_register_identifier: BiRegisterIdentifier) -> u32 {
@@ -490,6 +530,16 @@ impl CPU {
         8
     }
 
+    fn ld_register_bi_register_ptr(&mut self,
+                                   register_identifier: RegisterIdentifier,
+                                   bi_register_identifier: BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        self.write_register(register_identifier, value);
+
+        8
+    }
+
     fn stop_0(&mut self) -> u32 {
         self.program_counter.increment(1);
         self.stopped = true;
@@ -501,6 +551,16 @@ impl CPU {
         let pc = self.program_counter.read();
         self.program_counter.write((pc as i32 + value as i32) as u16);
         12
+    }
+
+    fn ld_bi_register_ptr_register(&mut self,
+                                   bi_register_identifier: BiRegisterIdentifier,
+                                   register_identifier: RegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier) as usize;
+        let value = self.read_register(register_identifier);
+
+        self.memory_bus.borrow_mut().write_8bit(address, value);
+        8
     }
 
     ///
@@ -848,6 +908,43 @@ mod test {
 
         cpu.stop_0();
         assert_eq!(cpu.stopped, true);
+    }
+
+    #[test]
+    fn instruction_ld_bi_register_ptr_register() {
+        let mut cpu = create_cpu();
+        cpu.write_register(RegisterIdentifier::A, 0x53);
+        cpu.write_bi_register(BiRegisterIdentifier::BC, 0xC023);
+
+        cpu.ld_bi_register_ptr_register(BiRegisterIdentifier::BC, RegisterIdentifier::A);
+
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC023), 0x53);
+    }
+
+    #[test]
+    fn instruction_ld_a16_ptr_sp() {
+        let mut cpu = create_cpu();
+        cpu.memory_bus.borrow_mut().write_16bit(0xC023, 0xC054);
+        cpu.stack_pointer.write(0x25);
+        cpu.program_counter.write(0xC023);
+
+        cpu.ld_a16_ptr_sp();
+
+
+        let value = cpu.memory_bus.borrow().read_16bit(0xC054);
+        assert_eq!(value, 0x25);
+    }
+
+    #[test]
+    fn instruction_ld_register_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_bi_register(BiRegisterIdentifier::BC, 0xC035);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC035, 0x28);
+
+        cpu.ld_register_bi_register_ptr(RegisterIdentifier::A, BiRegisterIdentifier::BC);
+
+        let value = cpu.read_register(RegisterIdentifier::A);
+        assert_eq!(value, 0x28);
     }
 }
 
