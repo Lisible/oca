@@ -23,9 +23,10 @@
 */
 
 use std::usize;
+use gb::memory::memory::*;
 
 pub struct Cartridge {
-    data: [u8; 0x8000]
+    rom: [u8; 0x8000],
 }
 
 #[derive(PartialEq, Debug)]
@@ -59,40 +60,13 @@ enum CartridgeType {
 }
 
 impl Cartridge {
-
     ///
     /// Creates a cartridge from a byte array
     ///
     pub fn from_bytes(bytes: [u8; 0x8000]) -> Cartridge {
         Cartridge {
-            data: bytes,
+            rom: bytes,
         }
-    }
-
-    ///
-    /// Reads data from the cartridge
-    ///
-    /// Params:
-    /// - address: usize = The address of the data to read
-    ///
-    /// Returns:
-    /// - The data at the given address
-    ///
-    pub fn read_8bit(&self, address: usize) -> u8 {
-        self.data[address]
-    }
-
-    ///
-    /// Reads data from the cartridge
-    ///
-    /// Params:
-    /// - address: usize = The address of the data to read
-    ///
-    /// Returns:
-    /// - The data at the given address
-    ///
-    pub fn read_16bit(&self, address: usize) -> u16 {
-        (self.data[address] as u16) | ((self.data[address.wrapping_add(1)] as u16) << 8)
     }
 
     ///
@@ -130,12 +104,41 @@ impl Cartridge {
             _ => panic!("Unknown cartridge type")
         }
     }
+}
 
-    #[cfg(test)]
-    pub fn write(&mut self, address: usize, value: u8) {
-        self.data[address] = value;
+impl ReadMemory for Cartridge {
+    fn read_8bit(&self, address: usize) -> u8 {
+        self.rom[address]
+    }
+
+    fn read_8bit_signed(&self, address: usize) -> i8 {
+        self.read_8bit(address) as i8
+    }
+
+    fn read_16bit(&self, address: usize) -> u16 {
+        let second = self.read_8bit(address);
+        let first = self.read_8bit(address.wrapping_add(1));
+
+        ((first as u16) << 8) | second as u16
     }
 }
+
+#[cfg(test)]
+impl WriteMemory for Cartridge {
+    fn write_8bit(&mut self, address: usize, value: u8) {
+        self.rom[address] = value;
+    }
+
+    fn write_8bit_signed(&mut self, address: usize, value: i8) {
+        self.write_8bit(address, value as u8);
+    }
+
+    fn write_16bit(&mut self, address: usize, value: u16) {
+        self.write_8bit(address, (((value as u16) << 8) >> 8) as u8);
+        self.write_8bit(address+1, ((value as u16) >> 8) as u8);
+    }
+}
+
 
 #[cfg(test)]
 mod test {
@@ -150,7 +153,7 @@ mod test {
         }
 
         let cartridge = Cartridge::from_bytes(bytes);
-        assert_eq!(cartridge.data[0x8], 0x8);
+        assert_eq!(cartridge.rom[0x8], 0x8);
     }
 
     #[test]

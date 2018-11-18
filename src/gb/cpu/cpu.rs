@@ -30,6 +30,7 @@ use gb::cpu::register_8bit::*;
 use gb::cpu::register_16bit::*;
 use gb::cpu::bi_register_8bit::*;
 use gb::memory::memory_bus::MemoryBus;
+use gb::memory::memory::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -555,10 +556,12 @@ mod test {
 
     use super::*;
     use gb::memory::cartridge::*;
+    use gb::memory::ram::*;
 
     fn create_cpu() -> CPU {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone())));
+        let ram = Rc::new(RefCell::new(Ram::new()));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone())));
         CPU::new(memory_bus.clone())
     }
 
@@ -727,13 +730,13 @@ mod test {
     #[test]
     fn instruction_jr_r8() {
         let mut cpu = create_cpu();
-        cpu.memory_bus.borrow_mut().write_8bit(0x02, 0x05);
-        cpu.program_counter.write(0x02);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC002, 0x05);
+        cpu.program_counter.write(0xC002);
 
         cpu.jr_r8();
 
         let pc = cpu.program_counter.read();
-        assert_eq!(pc, 0x07);
+        assert_eq!(pc, 0xC007);
     }
 }
 

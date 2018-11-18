@@ -23,4 +23,6 @@
 */
 
 pub mod memory_bus;
+pub mod memory;
 pub mod cartridge;
+pub mod ram;

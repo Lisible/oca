@@ -25,12 +25,14 @@
 use gb::cpu::cpu::CPU;
 use gb::memory::memory_bus::MemoryBus;
 use gb::memory::cartridge::Cartridge;
+use gb::memory::ram::Ram;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct Console {
     cpu: CPU,
+    ram: Rc<RefCell<Ram>>,
     cartridge: Rc<RefCell<Cartridge>>,
     memory_bus: Rc<RefCell<MemoryBus>>
 }
@@ -38,11 +40,13 @@ pub struct Console {
 impl Console {
     pub fn new() -> Console {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0;0x8000])));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone())));
+        let ram = Rc::new(RefCell::new(Ram::new()));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone())));
         let cpu = CPU::new(memory_bus.clone());
 
         Console {
             cpu,
+            ram,
             cartridge,
             memory_bus,
         }
