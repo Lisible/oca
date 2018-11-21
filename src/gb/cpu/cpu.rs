@@ -277,7 +277,7 @@ impl CPU {
             // LD L,d8
             0x2E => cycles += self.ld_register_d8(&RegisterIdentifier::L),
             // CPL
-            //0x2F => cycles += self.cpl(),
+            0x2F => cycles += self.cpl(),
             // JR NC,r8
             0x30 => cycles += self.jr_flag_r8(CPUFlag::C, false),
             // LD SP,d16
@@ -647,6 +647,12 @@ impl CPU {
 
         self.unset_flag(CPUFlag::H);
 
+        4
+    }
+
+    fn cpl(&mut self) -> u32 {
+        let a = self.read_register(&RegisterIdentifier::A);
+        self.write_register(&RegisterIdentifier::A, !a);
         4
     }
 
@@ -1082,6 +1088,16 @@ mod test {
 
         assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x180);
         assert_eq!(cpu.get_flag(CPUFlag::C), true)
+    }
+
+    #[test]
+    fn instruction_cpl() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0b01010101);
+
+        cpu.cpl();
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b10101010);
     }
 }
 
