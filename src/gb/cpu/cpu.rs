@@ -267,7 +267,7 @@ impl CPU {
             // ADD HL,HL
             0x29 => cycles += self.add_bi_register_bi_register(&BiRegisterIdentifier::HL, &BiRegisterIdentifier::HL),
             // LD A,(HL+)
-            //0x2A => cycles += self.ldi_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
+            0x2A => cycles += self.ldi_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
             // DEC HL
             0x2B => cycles += self.dec_bi_register(&BiRegisterIdentifier::HL),
             // INC L
@@ -282,18 +282,18 @@ impl CPU {
             0x30 => cycles += self.jr_flag_r8(CPUFlag::C, false),
             // LD SP,d16
             0x31 => cycles += self.ld_sp_d16(),
-            // LD(HL-),A
-            //0x32 => cycles += self.ldd_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::A),
+            // LD (HL-),A
+            0x32 => cycles += self.ldd_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::A),
             // INC SP
-            //0x33 => cycles += self.inc_sp(),
+            0x33 => cycles += self.inc_sp(),
             // INC (HL)
-            //0x34 => cycles += self.inc_bi_register_ptr(&BiRegisterIdentifier::HL),
+            0x34 => cycles += self.inc_bi_register_ptr(&BiRegisterIdentifier::HL),
             // DEC (HL)
-            //0x35 => cycles += self.dec_bi_register_ptr(&BiRegisterIdentifier::HL),
+            0x35 => cycles += self.dec_bi_register_ptr(&BiRegisterIdentifier::HL),
             // LD (HL),d8
-            //0x36 => cycles += self.ld_bi_register_ptr_d8(&BiRegisterIdentifier::HL),
+            0x36 => cycles += self.ld_bi_register_ptr_d8(&BiRegisterIdentifier::HL),
             // SCF
-            //0x37 => cycles += self.scf(),
+            0x37 => cycles += self.scf(),
             // JR C,r8
             0x38 => cycles += self.jr_flag_r8(CPUFlag::C, true),
             // ADD HL,SP
@@ -301,7 +301,7 @@ impl CPU {
             // LD A,(HL-)
             //0x3A => cycles += self.ldd_register_bi_register_ptr(&BiRegisterIdentifier::HL),
             // DEC SP
-            //0x3B => cycles += self.dec_sp(),
+            0x3B => cycles += self.dec_sp(),
             // INC A
             0x3C => cycles += self.inc_register(&RegisterIdentifier::A),
             // DEC A
@@ -309,7 +309,7 @@ impl CPU {
             // LD A,d8
             0x3E => cycles += self.ld_register_d8(&RegisterIdentifier::A),
             // CCF
-            //0x3F => cycles += self.ccf(),
+            0x3F => cycles += self.ccf(),
 
             _ => panic!("Unimplemented instruction")
         }
@@ -651,8 +651,75 @@ impl CPU {
     }
 
     fn cpl(&mut self) -> u32 {
-        let a = self.read_register(&RegisterIdentifier::A);
-        self.write_register(&RegisterIdentifier::A, !a);
+        let na = !self.read_register(&RegisterIdentifier::A);
+        self.write_register(&RegisterIdentifier::A, na);
+        4
+    }
+
+    fn ldi_register_bi_register_ptr(&mut self,
+                                    register_identifier: &RegisterIdentifier,
+                                    bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        self.ld_register_bi_register_ptr(register_identifier, bi_register_identifier);
+        self.inc_bi_register(bi_register_identifier);
+        8
+    }
+
+    fn ldd_bi_register_ptr_register(&mut self,
+                                    bi_register_identifier: &BiRegisterIdentifier,
+                                    register_identifier: &RegisterIdentifier) -> u32 {
+        self.ld_bi_register_ptr_register(bi_register_identifier, register_identifier);
+        self.dec_bi_register(bi_register_identifier);
+        8
+    }
+
+    fn inc_sp(&mut self) -> u32 {
+        self.stack_pointer.increment(1); // TODO set flags
+        8
+    }
+
+    fn inc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 { // TODO set flags
+        let address = self.read_bi_register(bi_register_identifier);
+        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        self.memory_bus.borrow_mut().write_8bit(address as usize, value + 1);
+        12
+    }
+
+    fn dec_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 { // TODO set flags
+        let address = self.read_bi_register(bi_register_identifier);
+        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        self.memory_bus.borrow_mut().write_8bit(address as usize, value - 1);
+        12
+    }
+
+    fn ld_bi_register_ptr_d8(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
+        self.program_counter.increment(1);
+        let address = self.read_bi_register(bi_register_identifier);
+        self.memory_bus.borrow_mut().write_8bit(address as usize, value);
+        12
+    }
+
+    fn dec_sp(&mut self) -> u32 {
+        self.stack_pointer.decrement(1);
+        8
+    }
+
+    fn scf(&mut self) -> u32 {
+        self.set_flag(CPUFlag::C);
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+        4
+    }
+
+    fn ccf(&mut self) -> u32 {
+        if self.get_flag(CPUFlag::C) {
+            self.unset_flag(CPUFlag::C);
+        }
+        else {
+            self.set_flag(CPUFlag::C);
+        }
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
         4
     }
 
@@ -1086,7 +1153,7 @@ mod test {
 
         cpu.daa();
 
-        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x180);
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x180 as u8);
         assert_eq!(cpu.get_flag(CPUFlag::C), true)
     }
 
@@ -1098,6 +1165,122 @@ mod test {
         cpu.cpl();
 
         assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b10101010);
+    }
+
+    #[test]
+    fn instruction_ldi_register_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC020);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC020, 0x23);
+
+        cpu.ldi_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x23);
+        assert_eq!(cpu.read_bi_register(&BiRegisterIdentifier::HL), 0xC021);
+    }
+
+    #[test]
+    fn instruction_ldd_bi_register_ptr_register() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0x18);
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC020);
+
+        cpu.ldd_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::A);
+
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC020), 0x18);
+        assert_eq!(cpu.read_bi_register(&BiRegisterIdentifier::HL), 0xC01F);
+    }
+
+    #[test]
+    fn instruction_inc_sp() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xABCD);
+
+        cpu.inc_sp();
+
+        assert_eq!(cpu.stack_pointer.read(), 0xABCE);
+    }
+
+    #[test]
+    fn instruction_inc_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC021);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC021, 0xA);
+
+        cpu.inc_bi_register_ptr(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC021), 0xB);
+    }
+
+    #[test]
+    fn instruction_dec_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC021);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC021, 0xA);
+
+        cpu.dec_bi_register_ptr(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC021), 0x9);
+    }
+
+    #[test]
+    fn instruction_ld_bi_register_ptr_d8() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC020);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC020, 0x5A);
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC030);
+
+        cpu.ld_bi_register_ptr_d8(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC030), 0x5A);
+        assert_eq!(cpu.program_counter.read(), 0xC021);
+    }
+
+    #[test]
+    fn instruction_dec_sp() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xC035);
+
+        cpu.dec_sp();
+
+        assert_eq!(cpu.stack_pointer.read(), 0xC034);
+    }
+
+    #[test]
+    fn instruction_scf() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::N);
+
+        cpu.scf();
+
+        assert_eq!(cpu.get_flag(CPUFlag::C), true);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), false);
+    }
+
+    #[test]
+    fn instruction_ccf_1() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::N);
+
+        cpu.ccf();
+
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), false);
+    }
+
+    #[test]
+    fn instruction_ccf_2() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::N);
+
+        cpu.ccf();
+
+        assert_eq!(cpu.get_flag(CPUFlag::C), true);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), false);
     }
 }
 
