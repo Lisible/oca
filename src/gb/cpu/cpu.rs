@@ -440,7 +440,134 @@ impl CPU {
         	0x7E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
             // LD A,A
         	0x7F => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::A),
-
+            // ADD A,B
+			0x80 => cycles += self.add_register(&RegisterIdentifier::B),
+            // ADD A,C
+            0x81 => cycles += self.add_register(&RegisterIdentifier::C),
+            // ADD A,D
+            0x82 => cycles += self.add_register(&RegisterIdentifier::D),
+            // ADD A,E
+            0x83 => cycles += self.add_register(&RegisterIdentifier::E),
+            // ADD A,H
+            0x84 => cycles += self.add_register(&RegisterIdentifier::H),
+            // ADD A,L
+            0x85 => cycles += self.add_register(&RegisterIdentifier::L),
+            // ADD A,(HL)
+            0x86 => cycles += self.add_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // ADD A,A
+            0x87 => cycles += self.add_register(&RegisterIdentifier::A),
+            // ADC A,B
+			0x88 => cycles += self.adc_register(&RegisterIdentifier::B),
+            // ADC A,C
+            0x89 => cycles += self.adc_register(&RegisterIdentifier::C),
+            // ADC A,D
+            0x8A => cycles += self.adc_register(&RegisterIdentifier::D),
+            // ADC A,E
+            0x8B => cycles += self.adc_register(&RegisterIdentifier::E),
+            // ADC A,H
+            0x8C => cycles += self.adc_register(&RegisterIdentifier::H),
+            // ADC A,L
+            0x8D => cycles += self.adc_register(&RegisterIdentifier::L),
+            // ADC A,(HL)
+            0x8E => cycles += self.adc_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // ADC A,A
+            0x8F => cycles += self.adc_register(&RegisterIdentifier::A),
+            // SUB B
+			/*0x90 => cycles += self.sub_register(&RegisterIdentifier::B),
+            // SUB C
+            0x91 => cycles += self.sub_register(&RegisterIdentifier::C),
+            // SUB D
+            0x92 => cycles += self.sub_register(&RegisterIdentifier::D),
+            // SUB E
+            0x93 => cycles += self.sub_register(&RegisterIdentifier::E),
+            // SUB H
+            0x94 => cycles += self.sub_register(&RegisterIdentifier::H),
+            // SUB L
+            0x95 => cycles += self.sub_register(&RegisterIdentifier::L),
+            // SUB (HL)
+            0x96 => cycles += self.sub_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // SUB A
+			0x97 => cycles += self.sub_register(&RegisterIdentifier::A),
+            // SBC A,B
+			0x98 => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::B),
+            // SBC A,C
+			0x99 => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::C),
+            // SBC A,D
+			0x9A => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::D),
+            // SBC A,E
+			0x9B => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::E),
+            // SBC A,H
+			0x9C => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::H),
+            // SBC A,L
+			0x9D => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::L),
+            // SBC A,(
+			0x9E => cycles += self.sbc_register_register(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
+            // SBC A,A
+			0x9F => cycles += self.sbc_register_register(&RegisterIdentifier::A, &RegisterIdentifier::A),
+            // AND B
+			0xA0 => cycles += self.and_register(&RegisterIdentifier::B),
+            // AND C
+            0xA1 => cycles += self.and_register(&RegisterIdentifier::C),
+            // AND D
+            0xA2 => cycles += self.and_register(&RegisterIdentifier::D),
+            // AND E
+            0xA3 => cycles += self.and_register(&RegisterIdentifier::E),
+            // AND H
+            0xA4 => cycles += self.and_register(&RegisterIdentifier::H),
+            // AND L
+            0xA5 => cycles += self.and_register(&RegisterIdentifier::L),
+            // AND (HL)
+            0xA6 => cycles += self.and_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // AND A
+            0xA7 => cycles += self.and_register(&RegisterIdentifier::A),
+            // XOR B
+            0xA8 => cycles += self.xor_register(&RegisterIdentifier::B),
+            // XOR C
+            0xA9 => cycles += self.xor_register(&RegisterIdentifier::C),
+            // XOR D
+            0xAA => cycles += self.xor_register(&RegisterIdentifier::D),
+            // XOR E
+            0xAB => cycles += self.xor_register(&RegisterIdentifier::E),
+            // XOR H
+            0xAC => cycles += self.xor_register(&RegisterIdentifier::H),
+            // XOR L
+            0xAD => cycles += self.xor_register(&RegisterIdentifier::L),
+            // XOR (HL)
+            0xAE => cycles += self.xor_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // XOR A
+            0xAF => cycles += self.xor_register(&RegisterIdentifier::A),
+            // OR B
+            0xB0 => cycles += self.or_register(&RegisterIdentifier::B),
+            // OR C
+            0xB1 => cycles += self.or_register(&RegisterIdentifier::C),
+            // OR D
+            0xB2 => cycles += self.or_register(&RegisterIdentifier::D),
+            // OR E
+            0xB3 => cycles += self.or_register(&RegisterIdentifier::E),
+            // OR H
+            0xB4 => cycles += self.or_register(&RegisterIdentifier::H),
+            // OR L
+            0xB5 => cycles += self.or_register(&RegisterIdentifier::L),
+            // OR (HL)
+            0xB6 => cycles += self.or_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // OR A
+            0xB7 => cycles += self.or_register(&RegisterIdentifier::A),
+            // CP B
+            0xB8 => cycles += self.cp_register(&RegisterIdentifier::B),
+            // CP C
+            0xB9 => cycles += self.cp_register(&RegisterIdentifier::C),
+            // CP D
+            0xBA => cycles += self.cp_register(&RegisterIdentifier::D),
+            // CP E
+            0xBB => cycles += self.cp_register(&RegisterIdentifier::E),
+            // CP H
+            0xBC => cycles += self.cp_register(&RegisterIdentifier::H),
+            // CP L
+            0xBD => cycles += self.cp_register(&RegisterIdentifier::L),
+            // CP (HL)
+            0xBE => cycles += self.cp_bi_register_ptr(&BiRegisterIdentifier::HL),
+            // CP A
+            0xBF => cycles += self.cp_register(&RegisterIdentifier::A),*/
             _ => panic!("Unimplemented instruction")
         }
     }
@@ -491,10 +618,14 @@ impl CPU {
 
         if sum == 0 {
             self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
         }
 
         if (sum & 0xF) < (lhs & 0xF) {
             self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
         }
 
         self.write_register(register_identifier, sum);
@@ -509,10 +640,14 @@ impl CPU {
 
         if difference == 0 {
             self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
         }
 
         if (difference & 0xF) <= (lhs & 0xF) {
             self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
         }
 
         self.write_register(register_identifier, difference);
@@ -546,6 +681,8 @@ impl CPU {
         {
             if (value & 0x80) != 0 {
                 self.set_flag(CPUFlag::C);
+            } else {
+                self.unset_flag(CPUFlag::C);
             }
         }
 
@@ -609,6 +746,8 @@ impl CPU {
         {
             if (value & 0x01) != 0 {
                 self.set_flag(CPUFlag::C);
+            } else {
+                self.unset_flag(CPUFlag::C);
             }
         }
 
@@ -682,10 +821,14 @@ impl CPU {
 
         if ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF) {
             self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
         }
 
         if sum > 0xFFFF {
             self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
         }
 
         self.write_bi_register(first_register_identifier, lhs.wrapping_add(rhs));
@@ -706,10 +849,14 @@ impl CPU {
 
         if ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF) {
             self.set_flag(CPUFlag::H);
+        }  else {
+            self.unset_flag(CPUFlag::H);
         }
 
         if sum > 0xFFFF {
             self.set_flag(CPUFlag::C);
+        }  else {
+            self.unset_flag(CPUFlag::C);
         }
 
         self.write_bi_register(bi_register_identifier, lhs.wrapping_add(rhs));
@@ -854,10 +1001,14 @@ impl CPU {
 
         if sum == 0 {
             self.set_flag(CPUFlag::Z);
+        }  else {
+            self.unset_flag(CPUFlag::Z);
         }
 
         if (sum & 0x0F) < (lhs & 0x0F) {
             self.set_flag(CPUFlag::H);
+        }  else {
+            self.unset_flag(CPUFlag::H);
         }
 
         self.memory_bus.borrow_mut().write_8bit(address as usize, sum);
@@ -927,6 +1078,138 @@ impl CPU {
     fn halt(&mut self) -> u32 {
         self.halted = true;
         1
+    }
+
+    fn add_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = self.read_register(register_identifier);
+        let sum = (lhs as u16).wrapping_add(rhs as u16);
+
+        if sum as u8 == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if sum > 0xFF {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, sum as u8);
+
+        self.unset_flag(CPUFlag::N);
+        4
+    }
+
+    fn add_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let sum : u16 = (lhs as u16).wrapping_add(rhs as u16);
+
+        if sum as u8 == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if sum > 0xFF {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, sum as u8);
+
+        self.unset_flag(CPUFlag::N);
+        8
+    }
+
+    fn adc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs;
+        if self.get_flag(CPUFlag::C) {
+            rhs = self.read_register(register_identifier).wrapping_add(1);
+        }
+        else {
+            rhs = self.read_register(register_identifier);
+        }
+
+        let sum = (lhs as u16).wrapping_add(rhs as u16);
+
+        if sum as u8 == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if sum > 0xFF {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, sum as u8);
+
+        self.unset_flag(CPUFlag::N);
+        4
+    }
+
+    fn adc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs;
+        if self.get_flag(CPUFlag::C) {
+            rhs = self.memory_bus.borrow().read_8bit(address as usize).wrapping_add(1);
+        }
+        else {
+            rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        }
+
+        let sum = (lhs as u16).wrapping_add(rhs as u16);
+
+        if sum as u8 == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if sum > 0xFF {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, sum as u8);
+
+        self.unset_flag(CPUFlag::N);
+        4
     }
 
     ///
@@ -1527,5 +1810,72 @@ mod test {
 
         assert_eq!(cpu.halted, true);
     }
+
+    #[test]
+    fn instruction_add_register() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0b00001011);
+        cpu.write_register(&RegisterIdentifier::B, 0b00000101);
+
+        cpu.add_register(&RegisterIdentifier::B);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b00010000);
+        assert_eq!(cpu.get_flag(CPUFlag::Z), false);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), true);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_add_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0b00001011);
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC036);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC036, 0b00000101);
+
+        cpu.add_bi_register_ptr(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b00010000);
+        assert_eq!(cpu.get_flag(CPUFlag::Z), false);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), true);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_adc_register() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0b00001011);
+        cpu.write_register(&RegisterIdentifier::B, 0b00000101);
+        cpu.set_flag(CPUFlag::C);
+
+        cpu.adc_register(&RegisterIdentifier::B);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b00010001);
+        assert_eq!(cpu.get_flag(CPUFlag::Z), false);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), true);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_adc_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_register(&RegisterIdentifier::A, 0b00001011);
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC036);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC036, 0b00000101);
+
+        cpu.set_flag(CPUFlag::C);
+
+        cpu.adc_bi_register_ptr(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0b00010001);
+        assert_eq!(cpu.get_flag(CPUFlag::Z), false);
+        assert_eq!(cpu.get_flag(CPUFlag::N), false);
+        assert_eq!(cpu.get_flag(CPUFlag::H), true);
+        assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+
 }
 
