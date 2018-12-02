@@ -613,7 +613,7 @@ impl CPU {
             // RST 18H
             // LDH (a8),A
             // POP HL
-            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::HL),
+            0xE1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::HL),
             // LD (C),A
             // PUSH HL
             0xE5 => cycles += self.push_bi_register(&BiRegisterIdentifier::HL),
@@ -626,7 +626,7 @@ impl CPU {
             // RST 28H
             // LDH A,(a8)
             // POP AF
-            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::AF),
+            0xF1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::AF),
             // LD A,(C)
             // DI
             // PUSH AF
