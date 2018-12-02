@@ -569,6 +569,7 @@ impl CPU {
             // CP A
             0xBF => cycles += self.cp_register(&RegisterIdentifier::A),
             // RET NZ
+            0xC8 => cycles += self.ret_flag(CPUFlag::Z, false),
             // POP BC
             0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::BC),
             // JP NZ,a16
@@ -581,6 +582,7 @@ impl CPU {
             // ADD A,d8
             // RST 00H
             // RET Z
+            0xC8 => cycles += self.ret_flag(CPUFlag::Z, true),
             // RET
             0xC9 => cycles += self.ret(),
             // JP Z,a16
@@ -591,6 +593,7 @@ impl CPU {
             // ADC A,d8
             // RST 08H
             // RET NC
+            0xC8 => cycles += self.ret_flag(CPUFlag::C, false),
             // POP DE
             0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::DE),
             // JP NC,a16
@@ -601,6 +604,7 @@ impl CPU {
             // SUB d8
             // RST 10H
             // RET C
+            0xC8 => cycles += self.ret_flag(CPUFlag::C, true),
             // RETI
             // JP C,a16
             0xDA => cycles += self.jp_flag_a16(CPUFlag::C, true),
@@ -1625,6 +1629,19 @@ impl CPU {
         8
     }
 
+    fn ret_flag(&mut self, cpu_flag: CPUFlag, if_set: bool) -> u32 {
+        let cycles;
+
+        if self.get_flag(cpu_flag) == if_set {
+            self.ret();
+            cycles = 20;
+        } else {
+            cycles = 8;
+        }
+
+        cycles
+    }
+
     ///
     /// Writes a value into a register
     ///
@@ -2549,6 +2566,43 @@ mod test {
 
         assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
         assert_eq!(cpu.program_counter.read(), 0xC090);
+    }
+
+    #[test]
+    fn instruction_ret_flag() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C);
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+
+        cpu.ret_flag(CPUFlag::C, true);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.program_counter.read(), 0xC090);
+    }
+
+    #[test]
+    fn instruction_ret_flag_2() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+
+        cpu.ret_flag(CPUFlag::C, false);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.program_counter.read(), 0xC090);
+    }
+
+    #[test]
+    fn instruction_ret_flag_3() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+
+        cpu.ret_flag(CPUFlag::C, true);
+
+        assert_ne!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_ne!(cpu.program_counter.read(), 0xC090);
     }
 }
 
