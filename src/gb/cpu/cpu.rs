@@ -573,6 +573,7 @@ impl CPU {
             0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::BC),
             // JP NZ,a16
             // JP a16
+            0xC3 => cycles += self.jp_a16(),
             // CALL NZ,a16
             // PUSH BC
             0xC5 => cycles += self.push_bi_register(&BiRegisterIdentifier::BC),
@@ -1591,6 +1592,13 @@ impl CPU {
         12
     }
 
+    fn jp_a16(&mut self) -> u32 {
+        let pc = self.program_counter.read();
+        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        self.program_counter.write(address);
+        12
+    }
+
     ///
     /// Writes a value into a register
     ///
@@ -2461,7 +2469,6 @@ mod test {
 
     #[test]
     fn instruction_pop_bi_register() {
-
         let mut cpu = create_cpu();
         cpu.stack_pointer.write(0xFFFC);
         cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
@@ -2470,6 +2477,17 @@ mod test {
 
         assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
         assert_eq!(cpu.read_bi_register(&BiRegisterIdentifier::BC), 0xC090);
+    }
+
+    #[test]
+    fn instruction_jp_a16() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC035);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
+
+        cpu.jp_a16();
+
+        assert_eq!(cpu.program_counter.read(), 0xC999);
     }
 }
 
