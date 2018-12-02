@@ -568,6 +568,63 @@ impl CPU {
             0xBE => cycles += self.cp_bi_register_ptr(&BiRegisterIdentifier::HL),
             // CP A
             0xBF => cycles += self.cp_register(&RegisterIdentifier::A),
+            // RET NZ
+            // POP BC
+            // JP NZ,a16
+            // JP a16
+            // CALL NZ,a16
+            // PUSH BC
+            0xC5 => cycles += self.push_bi_register(&BiRegisterIdentifier::BC),
+            // ADD A,d8
+            // RST 00H
+            // RET Z
+            // RET
+            // JP Z,a16
+            // PREFIX CB
+            // CALL Z,a16
+            // CALL a16
+            // ADC A,d8
+            // RST 08H
+            // RET NC
+            // POP DE
+            // JP NC,a16
+            // CALL NC,a16
+            // PUSH DE
+            0xD5 => cycles += self.push_bi_register(&BiRegisterIdentifier::DE),
+            // SUB d8
+            // RST 10H
+            // RET C
+            // RETI
+            // JP C,a16
+            // CALL C,a16
+            // SBC A,d8
+            // RST 18H
+            // LDH (a8),A
+            // POP HL
+            // LD (C),A
+            // PUSH HL
+            0xE5 => cycles += self.push_bi_register(&BiRegisterIdentifier::HL),
+            // AND d8
+            // RST 20H
+            // ADD SP,r8
+            // JP (HL)
+            // LD (a16),A
+            // XOR d8
+            // RST 28H
+            // LDH A,(a8)
+            // POP AF
+            // LD A,(C)
+            // DI
+            // PUSH AF
+            0xF5 => cycles += self.push_bi_register(&BiRegisterIdentifier::AF),
+            // OR d8
+            // RST 30H
+            // LD HL,SP+r8
+            // LD SP,HL
+            // LD A,(a16)
+            // EI
+            // CP d8
+            // RST 38H
             _ => panic!("Unimplemented instruction")
         }
     }
@@ -1514,6 +1571,15 @@ impl CPU {
         8
     }
 
+    fn push_bi_register(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        self.stack_pointer.decrement(2);
+        let sp = self.stack_pointer.read();
+        let address = self.read_bi_register(bi_register_identifier);
+        self.memory_bus.borrow_mut().write_16bit(sp as usize, address);
+
+        16
+    }
+
     ///
     /// Writes a value into a register
     ///
@@ -1567,12 +1633,16 @@ mod test {
     use super::*;
     use gb::memory::cartridge::*;
     use gb::memory::ram::*;
+    use gb::memory::high_ram::*;
 
     fn create_cpu() -> CPU {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
         let ram = Rc::new(RefCell::new(Ram::new()));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone())));
-        CPU::new(memory_bus.clone())
+        let high_ram = Rc::new(RefCell::new(HighRam::new()));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), high_ram.clone())));
+        let mut cpu = CPU::new(memory_bus.clone());
+        cpu.initialize();
+        cpu
     }
 
     #[test]
@@ -2362,6 +2432,20 @@ mod test {
         assert_eq!(cpu.get_flag(CPUFlag::N), true);
         assert_eq!(cpu.get_flag(CPUFlag::H), false);
         assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_push_bi_register() {
+        let mut cpu = create_cpu();
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        cpu.write_bi_register(&BiRegisterIdentifier::BC, 0xC090);
+
+
+        cpu.push_bi_register(&BiRegisterIdentifier::BC);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
+        assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFFFC), 0xC090);
     }
 }
 
