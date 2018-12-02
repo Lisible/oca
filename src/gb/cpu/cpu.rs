@@ -570,6 +570,7 @@ impl CPU {
             0xBF => cycles += self.cp_register(&RegisterIdentifier::A),
             // RET NZ
             // POP BC
+            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::BC),
             // JP NZ,a16
             // JP a16
             // CALL NZ,a16
@@ -587,6 +588,7 @@ impl CPU {
             // RST 08H
             // RET NC
             // POP DE
+            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::DE),
             // JP NC,a16
             // CALL NC,a16
             // PUSH DE
@@ -601,6 +603,7 @@ impl CPU {
             // RST 18H
             // LDH (a8),A
             // POP HL
+            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::HL),
             // LD (C),A
             // PUSH HL
             0xE5 => cycles += self.push_bi_register(&BiRegisterIdentifier::HL),
@@ -613,6 +616,7 @@ impl CPU {
             // RST 28H
             // LDH A,(a8)
             // POP AF
+            0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::AF),
             // LD A,(C)
             // DI
             // PUSH AF
@@ -1574,10 +1578,17 @@ impl CPU {
     fn push_bi_register(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         self.stack_pointer.decrement(2);
         let sp = self.stack_pointer.read();
-        let address = self.read_bi_register(bi_register_identifier);
-        self.memory_bus.borrow_mut().write_16bit(sp as usize, address);
-
+        let value = self.read_bi_register(bi_register_identifier);
+        self.memory_bus.borrow_mut().write_16bit(sp as usize, value);
         16
+    }
+
+    fn pop_bi_register(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let sp = self.stack_pointer.read();
+        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        self.stack_pointer.increment(2);
+        self.write_bi_register(bi_register_identifier, value);
+        12
     }
 
     ///
@@ -2446,6 +2457,19 @@ mod test {
 
         assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
         assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFFFC), 0xC090);
+    }
+
+    #[test]
+    fn instruction_pop_bi_register() {
+
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+
+        cpu.pop_bi_register(&BiRegisterIdentifier::BC);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.read_bi_register(&BiRegisterIdentifier::BC), 0xC090);
     }
 }
 
