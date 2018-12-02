@@ -572,6 +572,7 @@ impl CPU {
             // POP BC
             0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::BC),
             // JP NZ,a16
+            0xC2 => cycles += self.jp_flag_a16(CPUFlag::Z, false),
             // JP a16
             0xC3 => cycles += self.jp_a16(),
             // CALL NZ,a16
@@ -582,6 +583,7 @@ impl CPU {
             // RET Z
             // RET
             // JP Z,a16
+            0xCA => cycles += self.jp_flag_a16(CPUFlag::Z, true),
             // PREFIX CB
             // CALL Z,a16
             // CALL a16
@@ -591,6 +593,7 @@ impl CPU {
             // POP DE
             0xC1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::DE),
             // JP NC,a16
+            0xD2 => cycles += self.jp_flag_a16(CPUFlag::C, false),
             // CALL NC,a16
             // PUSH DE
             0xD5 => cycles += self.push_bi_register(&BiRegisterIdentifier::DE),
@@ -599,6 +602,7 @@ impl CPU {
             // RET C
             // RETI
             // JP C,a16
+            0xDA => cycles += self.jp_flag_a16(CPUFlag::C, true),
             // CALL C,a16
             // SBC A,d8
             // RST 18H
@@ -1599,6 +1603,19 @@ impl CPU {
         12
     }
 
+    fn jp_flag_a16(&mut self, cpu_flag: CPUFlag, if_set: bool) -> u32 {
+        let cycles;
+
+        if self.get_flag(cpu_flag) == if_set {
+            self.jp_a16();
+            cycles = 16;
+        } else {
+            cycles = 12;
+        }
+
+        cycles
+    }
+
     ///
     /// Writes a value into a register
     ///
@@ -2486,6 +2503,29 @@ mod test {
         cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
 
         cpu.jp_a16();
+
+        assert_eq!(cpu.program_counter.read(), 0xC999);
+    }
+
+    #[test]
+    fn instruction_jp_flag_a16() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC035);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
+
+        cpu.jp_flag_a16(CPUFlag::Z, false);
+
+        assert_eq!(cpu.program_counter.read(), 0xC999);
+    }
+
+    #[test]
+    fn instruction_jp_flag_a16_2() {
+        let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z);
+        cpu.program_counter.write(0xC035);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
+
+        cpu.jp_flag_a16(CPUFlag::Z, true);
 
         assert_eq!(cpu.program_counter.read(), 0xC999);
     }
