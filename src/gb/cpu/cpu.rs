@@ -582,6 +582,7 @@ impl CPU {
             // RST 00H
             // RET Z
             // RET
+            0xC9 => cycles += self.ret(),
             // JP Z,a16
             0xCA => cycles += self.jp_flag_a16(CPUFlag::Z, true),
             // PREFIX CB
@@ -1616,6 +1617,14 @@ impl CPU {
         cycles
     }
 
+    fn ret(&mut self) -> u32 {
+        let sp = self.stack_pointer.read();
+        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        self.stack_pointer.increment(2);
+        self.program_counter.write(value);
+        8
+    }
+
     ///
     /// Writes a value into a register
     ///
@@ -2528,6 +2537,18 @@ mod test {
         cpu.jp_flag_a16(CPUFlag::Z, true);
 
         assert_eq!(cpu.program_counter.read(), 0xC999);
+    }
+
+    #[test]
+    fn instruction_ret() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+
+        cpu.ret();
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.program_counter.read(), 0xC090);
     }
 }
 
