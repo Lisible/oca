@@ -135,34 +135,26 @@ impl CPU {
     ///
     /// Params:
     /// - flag: CPUFlag = The flag to set
+    /// - value: bool = The value to set the flag to
     ///
-    fn set_flag(&mut self, flag: CPUFlag) {
+    fn set_flag(&mut self, flag: CPUFlag, value: bool) {
         let mut register_f = self.registers[&RegisterIdentifier::F].borrow_mut();
         let register_f_value = register_f.read();
 
-        match flag {
-            CPUFlag::Z => register_f.write(register_f_value | (1 << 7)),
-            CPUFlag::N => register_f.write(register_f_value | (1 << 6)),
-            CPUFlag::H => register_f.write(register_f_value | (1 << 5)),
-            CPUFlag::C => register_f.write(register_f_value | (1 << 4)),
-        }
-    }
-
-    ///
-    /// Unsets a flag
-    ///
-    /// Params:
-    /// - flag: CPUFlag = The flag to unset
-    ///
-    fn unset_flag(&mut self, flag: CPUFlag) {
-        let mut register_f = self.registers[&RegisterIdentifier::F].borrow_mut();
-        let register_f_value = register_f.read();
-
-        match flag {
-            CPUFlag::Z => register_f.write(register_f_value & !(1 << 7)),
-            CPUFlag::N => register_f.write(register_f_value & !(1 << 6)),
-            CPUFlag::H => register_f.write(register_f_value & !(1 << 5)),
-            CPUFlag::C => register_f.write(register_f_value & !(1 << 4)),
+        if value == true {
+            match flag {
+                CPUFlag::Z => register_f.write(register_f_value | (1 << 7)),
+                CPUFlag::N => register_f.write(register_f_value | (1 << 6)),
+                CPUFlag::H => register_f.write(register_f_value | (1 << 5)),
+                CPUFlag::C => register_f.write(register_f_value | (1 << 4)),
+            }
+        } else {
+            match flag {
+                CPUFlag::Z => register_f.write(register_f_value & !(1 << 7)),
+                CPUFlag::N => register_f.write(register_f_value & !(1 << 6)),
+                CPUFlag::H => register_f.write(register_f_value & !(1 << 5)),
+                CPUFlag::C => register_f.write(register_f_value & !(1 << 4)),
+            }
         }
     }
 
@@ -688,20 +680,11 @@ impl CPU {
         let rhs = 1;
         let sum = lhs.wrapping_add(rhs);
 
-        if sum == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum & 0xF) < (lhs & 0xF) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
+        self.set_flag(CPUFlag::Z, sum == 0);
+        self.set_flag(CPUFlag::H, (sum & 0xF) < (lhs & 0xF));
+        self.set_flag(CPUFlag::N, false);
 
         self.write_register(register_identifier, sum);
-        self.unset_flag(CPUFlag::N);
         4
     }
 
@@ -710,20 +693,11 @@ impl CPU {
         let rhs = 1;
         let difference = lhs.wrapping_sub(rhs);
 
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (difference & 0xF) <= (lhs & 0xF) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::H, (difference & 0xF) <= (lhs & 0xF));
+        self.set_flag(CPUFlag::N, true);
 
         self.write_register(register_identifier, difference);
-        self.set_flag(CPUFlag::N);
         4
     }
 
@@ -736,132 +710,66 @@ impl CPU {
     }
 
     fn rlca(&mut self) -> u32 {
-        self.unset_flag(CPUFlag::Z);
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
 
+        let a = self.read_register(&RegisterIdentifier::A);
+        self.set_flag(CPUFlag::C, (a & 0x80) != 0);
 
+        let result = (a << 1) | ((a & 0x80) >> 7);
+        self.set_flag(CPUFlag::Z, result == 0);
 
-        let mut value = 0;
-        {
-            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
-            value = register_a.read();
-        }
-
-
-        {
-            if (value & 0x80) != 0 {
-                self.set_flag(CPUFlag::C);
-            } else {
-                self.unset_flag(CPUFlag::C);
-            }
-        }
-
-        let mut register_a = self.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut();
-        let new_value = (value << 1) | ((value & 0x80) >> 7);
-        register_a.write(new_value);
-
-
+        self.write_register(&RegisterIdentifier::A, result);
         4
     }
 
-
-
     fn rla(&mut self) -> u32 {
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+
         let carry_flag = self.get_flag(CPUFlag::C) as u8;
 
-        let mut value;
+        let a = self.read_register(&RegisterIdentifier::A);
+        self.set_flag(CPUFlag::C, (a & 0x80) != 0);
 
-        {
-            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
-            value = register_a.read();
-        }
+        let result = ((a << 1) & 0xFF) | carry_flag;
+        self.set_flag(CPUFlag::Z, result == 0);
 
-
-        {
-            if (value & 0x80) != 0 {
-                self.set_flag(CPUFlag::C);
-            }
-            else {
-                self.unset_flag(CPUFlag::C);
-            }
-        }
-
-        {
-            let mut register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow_mut();
-            let new_value = ((value << 1) & 0xFF) | carry_flag;
-            register_a.write(new_value);
-        }
-
-        self.unset_flag(CPUFlag::Z);
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-
+        self.write_register(&RegisterIdentifier::A, result);
         4
     }
 
     fn rrca(&mut self) -> u32 {
-        self.unset_flag(CPUFlag::Z);
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
 
-        let mut value = 0;
+        let a = self.read_register(&RegisterIdentifier::A);
+        self.set_flag(CPUFlag::C, (a & 0x01) != 0);
 
-        {
-            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
-            value = register_a.read();
+        let mut result = (a >> 1);
+        if (a & 0x01) != 0 {
+            result = result | 0x80;
         }
 
+        self.set_flag(CPUFlag::Z, result == 0);
 
-        {
-            if (value & 0x01) != 0 {
-                self.set_flag(CPUFlag::C);
-            } else {
-                self.unset_flag(CPUFlag::C);
-            }
-        }
-
-        let mut register_a = self.registers.get_mut(&RegisterIdentifier::A).unwrap().borrow_mut();
-        let mut new_value = (value >> 1);
-        if (value & 0x01) != 0 {
-            new_value = new_value | 0x80;
-        }
-
-        register_a.write(new_value);
+        self.write_register(&RegisterIdentifier::A, result);
         4
     }
 
     fn rra(&mut self) -> u32 {
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+
         let carry_flag = self.get_flag(CPUFlag::C) as u8;
 
-        let mut value;
+        let a = self.read_register(&RegisterIdentifier::A);
+        self.set_flag(CPUFlag::C, (a & 0x01) != 0);
 
-        {
-            let register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow();
-            value = register_a.read();
-        }
+        let result = ((a >> 1) & 0xFF) | (carry_flag << 7);
+        self.set_flag(CPUFlag::Z, result == 0);
 
-
-        {
-            if (value & 0x01) != 0 {
-                self.set_flag(CPUFlag::C);
-            }
-            else {
-                self.unset_flag(CPUFlag::C);
-            }
-        }
-
-        {
-            let mut register_a = self.registers.get(&RegisterIdentifier::A).unwrap().borrow_mut();
-            let new_value = ((value >> 1) & 0xFF) | (carry_flag << 7);
-            register_a.write(new_value);
-        }
-
-        self.unset_flag(CPUFlag::Z);
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
+        self.write_register(&RegisterIdentifier::A, result);
 
         4
     }
@@ -891,21 +799,11 @@ impl CPU {
         let rhs = self.read_bi_register(second_register_identifier);
         let sum = (lhs as u32).wrapping_add(rhs as u32);
 
-        if ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFFFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
 
         self.write_bi_register(first_register_identifier, lhs.wrapping_add(rhs));
-        self.unset_flag(CPUFlag::N);
-
         8
     }
 
@@ -919,20 +817,12 @@ impl CPU {
         let rhs = self.stack_pointer.read();
         let sum = (lhs as u32).wrapping_add(rhs as u32);
 
-        if ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF) {
-            self.set_flag(CPUFlag::H);
-        }  else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFFFF {
-            self.set_flag(CPUFlag::C);
-        }  else {
-            self.unset_flag(CPUFlag::C);
-        }
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
 
         self.write_bi_register(bi_register_identifier, lhs.wrapping_add(rhs));
-        self.unset_flag(CPUFlag::N);
+
 
         8
     }
@@ -1002,7 +892,7 @@ impl CPU {
         if !self.get_flag(CPUFlag::N) {
             if self.get_flag(CPUFlag::C) || register_a > 0x99 {
                 register_a = register_a.wrapping_add(0x60);
-                self.set_flag(CPUFlag::C);
+                self.set_flag(CPUFlag::C, true);
             }
 
             if self.get_flag(CPUFlag::H) || (register_a & 0x0f) > 0x09 {
@@ -1019,13 +909,8 @@ impl CPU {
         }
 
         self.write_register(&RegisterIdentifier::A, register_a);
-        if register_a == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::H);
+        self.set_flag(CPUFlag::Z, register_a == 0);
+        self.set_flag(CPUFlag::H, false);
 
         4
     }
@@ -1071,20 +956,11 @@ impl CPU {
         let rhs = 1;
         let sum = lhs.wrapping_add(rhs);
 
-        if sum == 0 {
-            self.set_flag(CPUFlag::Z);
-        }  else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        }  else {
-            self.unset_flag(CPUFlag::H);
-        }
+        self.set_flag(CPUFlag::Z, sum == 0);
+        self.set_flag(CPUFlag::H, (sum & 0x0F) < (lhs & 0x0F));
+        self.set_flag(CPUFlag::N, false);
 
         self.memory_bus.borrow_mut().write_8bit(address as usize, sum);
-        self.unset_flag(CPUFlag::N);
         12
     }
 
@@ -1094,16 +970,11 @@ impl CPU {
         let rhs = 1;
         let difference = lhs.wrapping_sub(rhs);
 
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        }
-
-        if (difference & 0x0F) <= (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        }
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::H, (difference & 0x0F) <= (lhs & 0x0F));
+        self.set_flag(CPUFlag::N, true);
 
         self.memory_bus.borrow_mut().write_8bit(address as usize, difference);
-        self.set_flag(CPUFlag::N);
         12
     }
 
@@ -1121,21 +992,17 @@ impl CPU {
     }
 
     fn scf(&mut self) -> u32 {
-        self.set_flag(CPUFlag::C);
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
+        self.set_flag(CPUFlag::C, true);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
         4
     }
 
     fn ccf(&mut self) -> u32 {
-        if self.get_flag(CPUFlag::C) {
-            self.unset_flag(CPUFlag::C);
-        }
-        else {
-            self.set_flag(CPUFlag::C);
-        }
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
+        let c = self.get_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::C, !c);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
         4
     }
 
@@ -1327,25 +1194,10 @@ impl CPU {
 
         let sum = (lhs as u16).wrapping_add(rhs as u16);
 
-        if sum as u8 == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-
-        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
+        self.set_flag(CPUFlag::Z, sum as u8 == 0);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, (sum as u8 & 0x0F) < (lhs & 0x0F));
+        self.set_flag(CPUFlag::C, sum > 0xFF);
 
         self.write_register(&RegisterIdentifier::A, sum as u8);
     }
@@ -1355,25 +1207,10 @@ impl CPU {
         let rhs = value;
         let difference = (lhs as u16).wrapping_sub(rhs as u16);
 
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.set_flag(CPUFlag::N);
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::N, true);
+        self.set_flag(CPUFlag::H, (rhs & 0x0F) > (lhs & 0x0F));
+        self.set_flag(CPUFlag::C, rhs > lhs);
 
         self.write_register(&RegisterIdentifier::A, difference as u8);
     }
@@ -1383,15 +1220,10 @@ impl CPU {
         let rhs = value;
         let result = lhs & rhs;
 
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.set_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::Z, result == 0);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, true);
+        self.set_flag(CPUFlag::C, false);
 
         self.write_register(&RegisterIdentifier::A, result);
     }
@@ -1401,15 +1233,10 @@ impl CPU {
         let rhs = value;
         let result = lhs ^ rhs;
 
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::Z, result == 0);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+        self.set_flag(CPUFlag::C, false);
 
         self.write_register(&RegisterIdentifier::A, result);
     }
@@ -1419,15 +1246,10 @@ impl CPU {
         let rhs = value;
         let result = lhs | rhs;
 
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::Z, result == 0);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+        self.set_flag(CPUFlag::C, false);
 
         self.write_register(&RegisterIdentifier::A, result);
     }
@@ -1437,25 +1259,10 @@ impl CPU {
         let rhs = value;
         let difference = (lhs as u16).wrapping_sub(rhs as u16);
 
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.set_flag(CPUFlag::N);
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::N, true);
+        self.set_flag(CPUFlag::H, (rhs & 0x0F) > (lhs & 0x0F));
+        self.set_flag(CPUFlag::C, rhs > lhs);
     }
 
     ///
@@ -1564,7 +1371,7 @@ mod test {
             assert_eq!(register_f.read(), 0x00);
         }
 
-        cpu.set_flag(CPUFlag::Z);
+        cpu.set_flag(CPUFlag::Z, true);
 
         {
             let register_f = cpu.registers[&RegisterIdentifier::F].borrow();
@@ -1582,7 +1389,7 @@ mod test {
             assert_eq!(register_f.read(), 0b01000000);
         }
 
-        cpu.unset_flag(CPUFlag::N);
+        cpu.set_flag(CPUFlag::N, false);
 
         {
             let mut register_f = cpu.registers[&RegisterIdentifier::F].borrow_mut();
@@ -1593,7 +1400,7 @@ mod test {
     #[test]
     fn can_get_flag() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::H);
+        cpu.set_flag(CPUFlag::H, true);
 
         assert_eq!(cpu.get_flag(CPUFlag::H), true);
         assert_eq!(cpu.get_flag(CPUFlag::C), false);
@@ -1612,7 +1419,7 @@ mod test {
     #[test]
     fn instruction_rlca() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rlca();
 
@@ -1623,7 +1430,7 @@ mod test {
     #[test]
     fn instruction_rlca_2() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b01010001);
         cpu.rlca();
 
@@ -1634,7 +1441,7 @@ mod test {
     #[test]
     fn instruction_rla_carry1() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rla();
 
@@ -1645,7 +1452,7 @@ mod test {
     #[test]
     fn instruction_rrca() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rrca();
 
@@ -1656,7 +1463,7 @@ mod test {
     #[test]
     fn instruction_rrca_2() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b11010000);
         cpu.rrca();
 
@@ -1677,7 +1484,7 @@ mod test {
     #[test]
     fn instruction_rra_carry1() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rra();
 
@@ -1840,7 +1647,7 @@ mod test {
     #[test]
     fn instruction_jr_flag_r8() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::Z);
+        cpu.set_flag(CPUFlag::Z, true);
         cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0x2);
         cpu.program_counter.write(0xC035);
 
@@ -1878,7 +1685,7 @@ mod test {
         use std::u8;
 
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0x20);
 
         cpu.daa();
@@ -1979,7 +1786,7 @@ mod test {
     #[test]
     fn instruction_scf() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::N);
+        cpu.set_flag(CPUFlag::N, true);
 
         cpu.scf();
 
@@ -1991,8 +1798,8 @@ mod test {
     #[test]
     fn instruction_ccf_1() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
-        cpu.set_flag(CPUFlag::N);
+        cpu.set_flag(CPUFlag::C, true);
+        cpu.set_flag(CPUFlag::N, true);
 
         cpu.ccf();
 
@@ -2004,7 +1811,7 @@ mod test {
     #[test]
     fn instruction_ccf_2() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::N);
+        cpu.set_flag(CPUFlag::N, true);
 
         cpu.ccf();
 
@@ -2016,7 +1823,7 @@ mod test {
     #[test]
     fn instruction_add_bi_register_sp() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::N);
+        cpu.set_flag(CPUFlag::N, true);
         cpu.stack_pointer.write(0b1101110110011001);
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0b0101010111011001);
 
@@ -2097,7 +1904,7 @@ mod test {
         let mut cpu = create_cpu();
         cpu.write_register(&RegisterIdentifier::A, 0b00001011);
         cpu.write_register(&RegisterIdentifier::B, 0b00000101);
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
 
         cpu.adc_register(&RegisterIdentifier::B);
 
@@ -2115,7 +1922,7 @@ mod test {
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC036);
         cpu.memory_bus.borrow_mut().write_8bit(0xC036, 0b00000101);
 
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
 
         cpu.adc_bi_register_ptr(&BiRegisterIdentifier::HL);
 
@@ -2162,7 +1969,7 @@ mod test {
         let mut cpu = create_cpu();
         cpu.write_register(&RegisterIdentifier::A, 0b00001011);
         cpu.write_register(&RegisterIdentifier::B, 0b00000011);
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
 
         cpu.sbc_register(&RegisterIdentifier::B);
 
@@ -2179,7 +1986,7 @@ mod test {
         cpu.write_register(&RegisterIdentifier::A, 0b00001011);
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC035);
         cpu.memory_bus.borrow_mut().write_8bit(0xC035, 0b00000011);
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
 
         cpu.sbc_bi_register_ptr(&BiRegisterIdentifier::HL);
 
@@ -2363,7 +2170,7 @@ mod test {
     #[test]
     fn instruction_jp_flag_a16_2() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::Z);
+        cpu.set_flag(CPUFlag::Z, true);
         cpu.program_counter.write(0xC035);
         cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
 
@@ -2387,7 +2194,7 @@ mod test {
     #[test]
     fn instruction_ret_flag() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::C);
+        cpu.set_flag(CPUFlag::C, true);
         cpu.stack_pointer.write(0xFFFC);
         cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
 
