@@ -675,32 +675,6 @@ impl CPU {
         8
     }
 
-    fn inc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(register_identifier);
-        let rhs = 1;
-        let sum = lhs.wrapping_add(rhs);
-
-        self.set_flag(CPUFlag::Z, sum == 0);
-        self.set_flag(CPUFlag::H, (sum & 0xF) < (lhs & 0xF));
-        self.set_flag(CPUFlag::N, false);
-
-        self.write_register(register_identifier, sum);
-        4
-    }
-
-    fn dec_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(register_identifier);
-        let rhs = 1;
-        let difference = lhs.wrapping_sub(rhs);
-
-        self.set_flag(CPUFlag::Z, difference == 0);
-        self.set_flag(CPUFlag::H, (difference & 0xF) <= (lhs & 0xF));
-        self.set_flag(CPUFlag::N, true);
-
-        self.write_register(register_identifier, difference);
-        4
-    }
-
     fn ld_register_d8(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
         let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
         self.program_counter.increment(1);
@@ -884,43 +858,6 @@ impl CPU {
         8
     }
 
-    fn daa(&mut self) -> u32 {
-        use std::u8;
-
-        let mut register_a = self.read_register(&RegisterIdentifier::A);
-
-        if !self.get_flag(CPUFlag::N) {
-            if self.get_flag(CPUFlag::C) || register_a > 0x99 {
-                register_a = register_a.wrapping_add(0x60);
-                self.set_flag(CPUFlag::C, true);
-            }
-
-            if self.get_flag(CPUFlag::H) || (register_a & 0x0f) > 0x09 {
-                register_a = register_a.wrapping_add(0x06);
-            }
-        }
-        else {
-            if self.get_flag(CPUFlag::C) {
-                register_a = register_a.wrapping_sub(0x60);
-            }
-            if self.get_flag(CPUFlag::H) {
-                register_a = register_a.wrapping_sub(0x06);
-            }
-        }
-
-        self.write_register(&RegisterIdentifier::A, register_a);
-        self.set_flag(CPUFlag::Z, register_a == 0);
-        self.set_flag(CPUFlag::H, false);
-
-        4
-    }
-
-    fn cpl(&mut self) -> u32 {
-        let na = !self.read_register(&RegisterIdentifier::A);
-        self.write_register(&RegisterIdentifier::A, na);
-        4
-    }
-
     fn ldi_register_bi_register_ptr(&mut self,
                                     register_identifier: &RegisterIdentifier,
                                     bi_register_identifier: &BiRegisterIdentifier) -> u32 {
@@ -945,65 +882,12 @@ impl CPU {
         8
     }
 
-    fn inc_sp(&mut self) -> u32 {
-        self.stack_pointer.increment(1);
-        8
-    }
-
-    fn inc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let rhs = 1;
-        let sum = lhs.wrapping_add(rhs);
-
-        self.set_flag(CPUFlag::Z, sum == 0);
-        self.set_flag(CPUFlag::H, (sum & 0x0F) < (lhs & 0x0F));
-        self.set_flag(CPUFlag::N, false);
-
-        self.memory_bus.borrow_mut().write_8bit(address as usize, sum);
-        12
-    }
-
-    fn dec_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let rhs = 1;
-        let difference = lhs.wrapping_sub(rhs);
-
-        self.set_flag(CPUFlag::Z, difference == 0);
-        self.set_flag(CPUFlag::H, (difference & 0x0F) <= (lhs & 0x0F));
-        self.set_flag(CPUFlag::N, true);
-
-        self.memory_bus.borrow_mut().write_8bit(address as usize, difference);
-        12
-    }
-
     fn ld_bi_register_ptr_d8(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
         self.program_counter.increment(1);
         let address = self.read_bi_register(bi_register_identifier);
         self.memory_bus.borrow_mut().write_8bit(address as usize, value);
         12
-    }
-
-    fn dec_sp(&mut self) -> u32 {
-        self.stack_pointer.decrement(1);
-        8
-    }
-
-    fn scf(&mut self) -> u32 {
-        self.set_flag(CPUFlag::C, true);
-        self.set_flag(CPUFlag::N, false);
-        self.set_flag(CPUFlag::H, false);
-        4
-    }
-
-    fn ccf(&mut self) -> u32 {
-        let c = self.get_flag(CPUFlag::C);
-        self.set_flag(CPUFlag::C, !c);
-        self.set_flag(CPUFlag::N, false);
-        self.set_flag(CPUFlag::H, false);
-        4
     }
 
     fn ld_register_register(&mut self,
@@ -1017,117 +901,6 @@ impl CPU {
     fn halt(&mut self) -> u32 {
         self.halted = true;
         1
-    }
-
-    fn add_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.add(rhs);
-        4
-    }
-
-    fn sub_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.sub(rhs);
-        4
-    }
-
-
-    fn add_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.add(rhs);
-        8
-    }
-
-    fn sub_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.sub(rhs);
-        8
-    }
-
-    fn adc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let mut rhs = self.read_register(register_identifier);
-        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
-        self.add(rhs);
-        4
-    }
-
-    fn sbc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
-        let mut rhs = self.read_register(register_identifier);
-        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
-        self.sub(rhs);
-        4
-    }
-
-    fn adc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
-        self.add(rhs);
-        8
-    }
-
-    fn sbc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
-        self.sub(rhs);
-        8
-    }
-
-    fn and_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.and(rhs);
-        4
-    }
-
-    fn and_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.and(rhs);
-        8
-    }
-
-    fn xor_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.xor(rhs);
-        4
-    }
-
-    fn xor_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.xor(rhs);
-        8
-    }
-
-    fn or_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.or(rhs);
-        4
-    }
-
-    fn or_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.or(rhs);
-        8
-    }
-
-
-    fn cp_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let rhs = self.read_register(register_identifier);
-        self.cp(rhs);
-        4
-    }
-
-    fn cp_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        self.cp(rhs);
-        8
     }
 
     fn push_bi_register(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
@@ -1264,6 +1037,230 @@ impl CPU {
         self.set_flag(CPUFlag::H, (rhs & 0x0F) > (lhs & 0x0F));
         self.set_flag(CPUFlag::C, rhs > lhs);
     }
+
+    fn inc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let lhs = self.read_register(register_identifier);
+        let sum = lhs.wrapping_add(1);
+
+        self.set_flag(CPUFlag::Z, sum == 0);
+        self.set_flag(CPUFlag::H, (sum & 0xF) < (lhs & 0xF));
+        self.set_flag(CPUFlag::N, false);
+
+        self.write_register(register_identifier, sum);
+        4
+    }
+
+    fn dec_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let lhs = self.read_register(register_identifier);
+        let difference = lhs.wrapping_sub(1);
+
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::H, (difference & 0xF) <= (lhs & 0xF));
+        self.set_flag(CPUFlag::N, true);
+
+        self.write_register(register_identifier, difference);
+        4
+    }
+
+    fn inc_sp(&mut self) -> u32 {
+        self.stack_pointer.increment(1);
+        8
+    }
+
+    fn dec_sp(&mut self) -> u32 {
+        self.stack_pointer.decrement(1);
+        8
+    }
+
+    fn inc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = 1;
+        let sum = lhs.wrapping_add(rhs);
+
+        self.set_flag(CPUFlag::Z, sum == 0);
+        self.set_flag(CPUFlag::H, (sum & 0x0F) < (lhs & 0x0F));
+        self.set_flag(CPUFlag::N, false);
+
+        self.memory_bus.borrow_mut().write_8bit(address as usize, sum);
+        12
+    }
+
+    fn dec_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = 1;
+        let difference = lhs.wrapping_sub(rhs);
+
+        self.set_flag(CPUFlag::Z, difference == 0);
+        self.set_flag(CPUFlag::H, (difference & 0x0F) <= (lhs & 0x0F));
+        self.set_flag(CPUFlag::N, true);
+
+        self.memory_bus.borrow_mut().write_8bit(address as usize, difference);
+        12
+    }
+
+    fn daa(&mut self) -> u32 {
+        use std::u8;
+
+        let mut register_a = self.read_register(&RegisterIdentifier::A);
+
+        if !self.get_flag(CPUFlag::N) {
+            if self.get_flag(CPUFlag::C) || register_a > 0x99 {
+                register_a = register_a.wrapping_add(0x60);
+                self.set_flag(CPUFlag::C, true);
+            }
+
+            if self.get_flag(CPUFlag::H) || (register_a & 0x0f) > 0x09 {
+                register_a = register_a.wrapping_add(0x06);
+            }
+        }
+            else {
+                if self.get_flag(CPUFlag::C) {
+                    register_a = register_a.wrapping_sub(0x60);
+                }
+                if self.get_flag(CPUFlag::H) {
+                    register_a = register_a.wrapping_sub(0x06);
+                }
+            }
+
+        self.write_register(&RegisterIdentifier::A, register_a);
+        self.set_flag(CPUFlag::Z, register_a == 0);
+        self.set_flag(CPUFlag::H, false);
+
+        4
+    }
+
+    fn cpl(&mut self) -> u32 {
+        let na = !self.read_register(&RegisterIdentifier::A);
+        self.write_register(&RegisterIdentifier::A, na);
+        4
+    }
+
+    fn scf(&mut self) -> u32 {
+        self.set_flag(CPUFlag::C, true);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+        4
+    }
+
+    fn ccf(&mut self) -> u32 {
+        let c = self.get_flag(CPUFlag::C);
+        self.set_flag(CPUFlag::C, !c);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::H, false);
+        4
+    }
+
+    fn add_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.add(rhs);
+        4
+    }
+
+    fn sub_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.sub(rhs);
+        4
+    }
+
+    fn add_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.add(rhs);
+        8
+    }
+
+    fn sub_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.sub(rhs);
+        8
+    }
+
+    fn adc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let mut rhs = self.read_register(register_identifier);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.add(rhs);
+        4
+    }
+
+    fn sbc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let mut rhs = self.read_register(register_identifier);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.sub(rhs);
+        4
+    }
+
+    fn adc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.add(rhs);
+        8
+    }
+
+    fn sbc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.sub(rhs);
+        8
+    }
+
+    fn and_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.and(rhs);
+        4
+    }
+
+    fn and_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.and(rhs);
+        8
+    }
+
+    fn xor_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.xor(rhs);
+        4
+    }
+
+    fn xor_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.xor(rhs);
+        8
+    }
+
+    fn or_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.or(rhs);
+        4
+    }
+
+    fn or_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.or(rhs);
+        8
+    }
+
+    fn cp_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let rhs = self.read_register(register_identifier);
+        self.cp(rhs);
+        4
+    }
+
+    fn cp_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        self.cp(rhs);
+        8
+    }
+
 
     ///
     /// Writes a value into a register
