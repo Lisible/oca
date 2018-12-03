@@ -590,6 +590,7 @@ impl CPU {
             // PREFIX CB
             // CALL Z,a16
             // CALL a16
+            //0xCD => cycles += self.call_a16(),
             // ADC A,d8
             // RST 08H
             // RET NC
@@ -1152,436 +1153,113 @@ impl CPU {
     }
 
     fn add_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let sum = (lhs as u16).wrapping_add(rhs as u16);
-
-        if sum as u8 == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, sum as u8);
-
-        self.unset_flag(CPUFlag::N);
+        self.add(rhs);
         4
     }
 
     fn sub_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, difference as u8);
-        self.set_flag(CPUFlag::N);
+        self.sub(rhs);
         4
     }
 
 
     fn add_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let sum = (lhs as u16).wrapping_add(rhs as u16);
-
-        if sum as u8 == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, sum as u8);
-
-        self.unset_flag(CPUFlag::N);
+        self.add(rhs);
         8
     }
 
     fn sub_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, difference as u8);
-        self.set_flag(CPUFlag::N);
+        self.sub(rhs);
         8
     }
 
     fn adc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
-        let rhs;
-        if self.get_flag(CPUFlag::C) {
-            rhs = self.read_register(register_identifier).wrapping_add(1);
-        }
-        else {
-            rhs = self.read_register(register_identifier);
-        }
-
-        let sum = (lhs as u16).wrapping_add(rhs as u16);
-
-        if sum as u8 == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, sum as u8);
-
-        self.unset_flag(CPUFlag::N);
+        let mut rhs = self.read_register(register_identifier);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.add(rhs);
         4
     }
 
     fn sbc_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
         let lhs = self.read_register(&RegisterIdentifier::A);
-        let rhs;
-
-        if self.get_flag(CPUFlag::C) {
-            rhs = self.read_register(register_identifier).wrapping_add(1);
-        } else {
-            rhs = self.read_register(register_identifier);
-        }
-
-
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, difference as u8);
-        self.set_flag(CPUFlag::N);
+        let mut rhs = self.read_register(register_identifier);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.sub(rhs);
         4
     }
 
     fn adc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs;
-        if self.get_flag(CPUFlag::C) {
-            rhs = self.memory_bus.borrow().read_8bit(address as usize).wrapping_add(1);
-        }
-        else {
-            rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        }
-
-        let sum = (lhs as u16).wrapping_add(rhs as u16);
-
-        if sum as u8 == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if sum > 0xFF {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, sum as u8);
-
-        self.unset_flag(CPUFlag::N);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.add(rhs);
         8
     }
 
     fn sbc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
-        let address = self.read_bi_register(bi_register_identifier);let rhs;
-        if self.get_flag(CPUFlag::C) {
-            rhs = self.memory_bus.borrow().read_8bit(address as usize).wrapping_add(1);
-        }
-        else {
-            rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        }
-
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.write_register(&RegisterIdentifier::A, difference as u8);
-        self.set_flag(CPUFlag::N);
+        let address = self.read_bi_register(bi_register_identifier);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
+        self.sub(rhs);
         8
     }
 
     fn and_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let result = lhs & rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.set_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.and(rhs);
         4
     }
 
     fn and_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let result = lhs & rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.set_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.and(rhs);
         8
     }
 
     fn xor_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let result = lhs ^ rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.xor(rhs);
         4
     }
 
     fn xor_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let result = lhs ^ rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.xor(rhs);
         8
     }
 
     fn or_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let result = lhs | rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.or(rhs);
         4
     }
 
     fn or_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let result = lhs | rhs;
-
-        if result == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        self.unset_flag(CPUFlag::N);
-        self.unset_flag(CPUFlag::H);
-        self.unset_flag(CPUFlag::C);
-
-        self.write_register(&RegisterIdentifier::A, result);
+        self.or(rhs);
         8
     }
 
 
     fn cp_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_register(register_identifier);
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.set_flag(CPUFlag::N);
+        self.cp(rhs);
         4
     }
 
     fn cp_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let lhs = self.read_register(&RegisterIdentifier::A);
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
-        let difference = (lhs as u16).wrapping_sub(rhs as u16);
-
-        if difference == 0 {
-            self.set_flag(CPUFlag::Z);
-        } else {
-            self.unset_flag(CPUFlag::Z);
-        }
-
-        if (rhs & 0x0F) > (lhs & 0x0F) {
-            self.set_flag(CPUFlag::H);
-        } else {
-            self.unset_flag(CPUFlag::H);
-        }
-
-        if rhs > lhs {
-            self.set_flag(CPUFlag::C);
-        } else {
-            self.unset_flag(CPUFlag::C);
-        }
-
-        self.set_flag(CPUFlag::N);
+        self.cp(rhs);
         8
     }
 
@@ -1640,6 +1318,144 @@ impl CPU {
         }
 
         cycles
+    }
+
+    // 8-bit ALU
+    fn add(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+
+        let sum = (lhs as u16).wrapping_add(rhs as u16);
+
+        if sum as u8 == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        self.unset_flag(CPUFlag::N);
+
+        if (sum as u8 & 0x0F) < (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if sum > 0xFF {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, sum as u8);
+    }
+
+    fn sub(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+        let difference = (lhs as u16).wrapping_sub(rhs as u16);
+
+        if difference == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        self.set_flag(CPUFlag::N);
+
+        if (rhs & 0x0F) > (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if rhs > lhs {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.write_register(&RegisterIdentifier::A, difference as u8);
+    }
+
+    fn and(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+        let result = lhs & rhs;
+
+        if result == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        self.unset_flag(CPUFlag::N);
+        self.set_flag(CPUFlag::H);
+        self.unset_flag(CPUFlag::C);
+
+        self.write_register(&RegisterIdentifier::A, result);
+    }
+
+    fn xor(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+        let result = lhs ^ rhs;
+
+        if result == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+        self.unset_flag(CPUFlag::C);
+
+        self.write_register(&RegisterIdentifier::A, result);
+    }
+
+    fn or(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+        let result = lhs | rhs;
+
+        if result == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        self.unset_flag(CPUFlag::N);
+        self.unset_flag(CPUFlag::H);
+        self.unset_flag(CPUFlag::C);
+
+        self.write_register(&RegisterIdentifier::A, result);
+    }
+
+    fn cp(&mut self, value: u8) {
+        let lhs = self.read_register(&RegisterIdentifier::A);
+        let rhs = value;
+        let difference = (lhs as u16).wrapping_sub(rhs as u16);
+
+        if difference == 0 {
+            self.set_flag(CPUFlag::Z);
+        } else {
+            self.unset_flag(CPUFlag::Z);
+        }
+
+        if (rhs & 0x0F) > (lhs & 0x0F) {
+            self.set_flag(CPUFlag::H);
+        } else {
+            self.unset_flag(CPUFlag::H);
+        }
+
+        if rhs > lhs {
+            self.set_flag(CPUFlag::C);
+        } else {
+            self.unset_flag(CPUFlag::C);
+        }
+
+        self.set_flag(CPUFlag::N);
     }
 
     ///
