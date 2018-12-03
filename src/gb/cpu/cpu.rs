@@ -305,7 +305,7 @@ impl CPU {
             // CCF
             0x3F => cycles += self.ccf(),
             // LD B,B
-			0x40 => cycles += self.ld_register_register(&RegisterIdentifier::B, &RegisterIdentifier::B),
+            0x40 => cycles += self.ld_register_register(&RegisterIdentifier::B, &RegisterIdentifier::B),
             // LD B,C
             0x41 => cycles += self.ld_register_register(&RegisterIdentifier::B, &RegisterIdentifier::C),
             // LD B,D
@@ -325,115 +325,115 @@ impl CPU {
             // LD C,C
             0x49 => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::C),
             // LD C,D
-        	0x4A => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::D),
+            0x4A => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::D),
             // LD C,E
-        	0x4B => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::E),
+            0x4B => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::E),
             // LD C,H
-        	0x4C => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::H),
+            0x4C => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::H),
             // LD C,L
-        	0x4D => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::L),
+            0x4D => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::L),
             // LD C,(HL)
-        	0x4E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::C, &BiRegisterIdentifier::HL),
+            0x4E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::C, &BiRegisterIdentifier::HL),
             // LD C,A
-        	0x4F => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::A),
+            0x4F => cycles += self.ld_register_register(&RegisterIdentifier::C, &RegisterIdentifier::A),
             // LD D,B
-        	0x50 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::B),
+            0x50 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::B),
             // LD D,C
-        	0x51 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::C),
+            0x51 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::C),
             // LD D,D
-        	0x52 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::D),
+            0x52 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::D),
             // LD D,E
-        	0x53 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::E),
+            0x53 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::E),
             // LD D,H
-        	0x54 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::H),
+            0x54 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::H),
             // LD D,L
-        	0x55 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::L),
+            0x55 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::L),
             // LD D,(HL)
-        	0x56 => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::D, &BiRegisterIdentifier::HL),
+            0x56 => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::D, &BiRegisterIdentifier::HL),
             // LD D,A
-        	0x57 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::A),
+            0x57 => cycles += self.ld_register_register(&RegisterIdentifier::D, &RegisterIdentifier::A),
             // LD E,B
-        	0x58 => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::B),
+            0x58 => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::B),
             // LD E,C
-        	0x59 => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::C),
+            0x59 => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::C),
             // LD E,D
-        	0x5A => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::D),
+            0x5A => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::D),
             // LD E,E
-        	0x5B => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::E),
+            0x5B => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::E),
             // LD E,H
-        	0x5C => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::H),
+            0x5C => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::H),
             // LD E,L
-        	0x5D => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::L),
+            0x5D => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::L),
             // LD E,(HL)
-        	0x5E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::E, &BiRegisterIdentifier::HL),
+            0x5E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::E, &BiRegisterIdentifier::HL),
             // LD E,A
-        	0x5F => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::A),
+            0x5F => cycles += self.ld_register_register(&RegisterIdentifier::E, &RegisterIdentifier::A),
             // LD H,B
-        	0x60 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::B),
+            0x60 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::B),
             // LD H,C
-        	0x61 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::C),
+            0x61 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::C),
             // LD H,D
-        	0x62 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::D),
+            0x62 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::D),
             // LD H,E
-        	0x63 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::E),
+            0x63 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::E),
             // LD H,H
-        	0x64 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::H),
+            0x64 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::H),
             // LD H,L
-        	0x65 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::L),
+            0x65 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::L),
             // LD H,(HL)
-        	0x66 => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::H, &BiRegisterIdentifier::HL),
+            0x66 => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::H, &BiRegisterIdentifier::HL),
             // LD H,A
-        	0x67 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::A),
+            0x67 => cycles += self.ld_register_register(&RegisterIdentifier::H, &RegisterIdentifier::A),
             // LD L,B
-        	0x68 => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::B),
+            0x68 => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::B),
             // LD L,C
-        	0x69 => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::C),
+            0x69 => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::C),
             // LD L,D
-        	0x6A => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::D),
+            0x6A => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::D),
             // LD L,E
-        	0x6B => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::E),
+            0x6B => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::E),
             // LD L,H
-        	0x6C => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::H),
+            0x6C => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::H),
             // LD L,L
-        	0x6D => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::L),
+            0x6D => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::L),
             // LD L,(HL)
-        	0x6E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::L, &BiRegisterIdentifier::HL),
+            0x6E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::L, &BiRegisterIdentifier::HL),
             // LD L,A
-        	0x6F => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::A),
+            0x6F => cycles += self.ld_register_register(&RegisterIdentifier::L, &RegisterIdentifier::A),
             // LD (HL),B
-        	0x70 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::B),
+            0x70 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::B),
             // LD (HL),C
-        	0x71 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::C),
+            0x71 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::C),
             // LD (HL),D
-        	0x72 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::D),
+            0x72 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::D),
             // LD (HL),E
-        	0x73 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::E),
+            0x73 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::E),
             // LD (HL),H
-        	0x74 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::H),
+            0x74 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::H),
             // LD (HL),L
-        	0x75 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::L),
+            0x75 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::L),
             // HALT
-        	0x76 => cycles += self.halt(),
+            0x76 => cycles += self.halt(),
             // LD (HL),A
-        	0x77 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::A),
+            0x77 => cycles += self.ld_bi_register_ptr_register(&BiRegisterIdentifier::HL, &RegisterIdentifier::A),
             // LD A,B
-        	0x78 => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::B),
+            0x78 => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::B),
             // LD A,C
-        	0x79 => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::C),
+            0x79 => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::C),
             // LD A,D
-        	0x7A => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::D),
+            0x7A => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::D),
             // LD A,E
-        	0x7B => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::E),
+            0x7B => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::E),
             // LD A,H
-        	0x7C => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::H),
+            0x7C => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::H),
             // LD A,L
-        	0x7D => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::L),
+            0x7D => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::L),
             // LD A,(HL)
-        	0x7E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
+            0x7E => cycles += self.ld_register_bi_register_ptr(&RegisterIdentifier::A, &BiRegisterIdentifier::HL),
             // LD A,A
-        	0x7F => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::A),
+            0x7F => cycles += self.ld_register_register(&RegisterIdentifier::A, &RegisterIdentifier::A),
             // ADD A,B
-			0x80 => cycles += self.add_register(&RegisterIdentifier::B),
+            0x80 => cycles += self.add_register(&RegisterIdentifier::B),
             // ADD A,C
             0x81 => cycles += self.add_register(&RegisterIdentifier::C),
             // ADD A,D
@@ -449,7 +449,7 @@ impl CPU {
             // ADD A,A
             0x87 => cycles += self.add_register(&RegisterIdentifier::A),
             // ADC A,B
-			0x88 => cycles += self.adc_register(&RegisterIdentifier::B),
+            0x88 => cycles += self.adc_register(&RegisterIdentifier::B),
             // ADC A,C
             0x89 => cycles += self.adc_register(&RegisterIdentifier::C),
             // ADC A,D
@@ -465,7 +465,7 @@ impl CPU {
             // ADC A,A
             0x8F => cycles += self.adc_register(&RegisterIdentifier::A),
             // SUB B
-			0x90 => cycles += self.sub_register(&RegisterIdentifier::B),
+            0x90 => cycles += self.sub_register(&RegisterIdentifier::B),
             // SUB C
             0x91 => cycles += self.sub_register(&RegisterIdentifier::C),
             // SUB D
@@ -479,25 +479,25 @@ impl CPU {
             // SUB (HL)
             0x96 => cycles += self.sub_bi_register_ptr(&BiRegisterIdentifier::HL),
             // SUB A
-			0x97 => cycles += self.sub_register(&RegisterIdentifier::A),
+            0x97 => cycles += self.sub_register(&RegisterIdentifier::A),
             // SBC A,B
-			0x98 => cycles += self.sbc_register(&RegisterIdentifier::B),
+            0x98 => cycles += self.sbc_register(&RegisterIdentifier::B),
             // SBC A,C
-			0x99 => cycles += self.sbc_register(&RegisterIdentifier::C),
+            0x99 => cycles += self.sbc_register(&RegisterIdentifier::C),
             // SBC A,D
-			0x9A => cycles += self.sbc_register(&RegisterIdentifier::D),
+            0x9A => cycles += self.sbc_register(&RegisterIdentifier::D),
             // SBC A,E
-			0x9B => cycles += self.sbc_register(&RegisterIdentifier::E),
+            0x9B => cycles += self.sbc_register(&RegisterIdentifier::E),
             // SBC A,H
-			0x9C => cycles += self.sbc_register(&RegisterIdentifier::H),
+            0x9C => cycles += self.sbc_register(&RegisterIdentifier::H),
             // SBC A,L
-			0x9D => cycles += self.sbc_register(&RegisterIdentifier::L),
+            0x9D => cycles += self.sbc_register(&RegisterIdentifier::L),
             // SBC A,(HL)
-			0x9E => cycles += self.sbc_bi_register_ptr(&BiRegisterIdentifier::HL),
+            0x9E => cycles += self.sbc_bi_register_ptr(&BiRegisterIdentifier::HL),
             // SBC A,A
-			0x9F => cycles += self.sbc_register(&RegisterIdentifier::A),
+            0x9F => cycles += self.sbc_register(&RegisterIdentifier::A),
             // AND B
-			0xA0 => cycles += self.and_register(&RegisterIdentifier::B),
+            0xA0 => cycles += self.and_register(&RegisterIdentifier::B),
             // AND C
             0xA1 => cycles += self.and_register(&RegisterIdentifier::C),
             // AND D
