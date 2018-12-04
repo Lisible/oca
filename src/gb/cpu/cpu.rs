@@ -654,6 +654,7 @@ impl CPU {
             // LD SP,HL
             0xF9 => cycles += self.ld_sp_bi_register(&BiRegisterIdentifier::HL),
             // LD A,(a16)
+            0xFA => cycles += self.ld_register_a16_ptr(&RegisterIdentifier::A),
             // EI
             // CP d8
             0xFE => cycles += self.cp_d8(),
@@ -1035,6 +1036,15 @@ impl CPU {
         let value = self.read_bi_register(bi_register_identifier);
         self.stack_pointer.write(value);
         8
+    }
+
+    fn ld_register_a16_ptr(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let pc = self.program_counter.read();
+        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        self.program_counter.increment(2);
+        self.write_register(register_identifier, value);
+        16
     }
 
     // 8-bit ALU
@@ -2683,6 +2693,19 @@ mod test {
         cpu.jp_bi_register_ptr(&BiRegisterIdentifier::HL);
 
         assert_eq!(cpu.program_counter.read(), 0xC825);
+    }
+
+    #[test]
+    fn instruction_ld_register_a16_ptr() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC825);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC825, 0xC600);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC600, 0x35);
+
+        cpu.ld_register_a16_ptr(&RegisterIdentifier::A);
+
+        assert_eq!(cpu.program_counter.read(), 0xC827);
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x35);
     }
 }
 
