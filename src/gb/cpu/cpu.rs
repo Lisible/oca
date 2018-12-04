@@ -575,6 +575,7 @@ impl CPU {
             // ADD A,d8
             0xC6 => cycles += self.add_d8(),
             // RST 00H
+            0xC7 => cycles += self.rst(0x00),
             // RET Z
             0xC8 => cycles += self.ret_flag(CPUFlag::Z, true),
             // RET
@@ -589,6 +590,7 @@ impl CPU {
             // ADC A,d8
             0xCE => cycles += self.adc_d8(),
             // RST 08H
+            0xCF => cycles += self.rst(0x08),
             // RET NC
             0xD0 => cycles += self.ret_flag(CPUFlag::C, false),
             // POP DE
@@ -602,8 +604,9 @@ impl CPU {
             // SUB d8
             0xD6 => cycles += self.sub_d8(),
             // RST 10H
+            0xD7 => cycles += self.rst(0x10),
             // RET C
-            0xC8 => cycles += self.ret_flag(CPUFlag::C, true),
+            0xD8 => cycles += self.ret_flag(CPUFlag::C, true),
             // RETI
             // JP C,a16
             0xDA => cycles += self.jp_flag_a16(CPUFlag::C, true),
@@ -612,6 +615,7 @@ impl CPU {
             // SBC A,d8
             0xDE => cycles += self.sbc_d8(),
             // RST 18H
+            0xDF => cycles += self.rst(0x18),
             // LDH (a8),A
             // POP HL
             0xE1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::HL),
@@ -621,12 +625,14 @@ impl CPU {
             // AND d8
             0xE6 => cycles += self.and_d8(),
             // RST 20H
+            0xE7 => cycles += self.rst(0x20),
             // ADD SP,r8
             // JP (HL)
             // LD (a16),A
             // XOR d8
             0xEE => cycles += self.and_d8(),
             // RST 28H
+            0xEF => cycles += self.rst(0x28),
             // LDH A,(a8)
             // POP AF
             0xF1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::AF),
@@ -637,6 +643,7 @@ impl CPU {
             // OR d8
             0xF6 => cycles += self.or_d8(),
             // RST 30H
+            0xF7 => cycles += self.rst(0x30),
             // LD HL,SP+r8
             // LD SP,HL
             // LD A,(a16)
@@ -644,6 +651,7 @@ impl CPU {
             // CP d8
             0xFE => cycles += self.cp_d8(),
             // RST 38H
+            0xFF => cycles += self.rst(0x38),
             _ => panic!("Unimplemented instruction")
         }
     }
@@ -947,6 +955,16 @@ impl CPU {
             self.program_counter.increment(2);
             12
         }
+    }
+
+    fn rst(&mut self, address: u8) -> u32 {
+        let pc = self.program_counter.read();
+        let sp = self.stack_pointer.read();
+        self.memory_bus.borrow_mut().write_16bit(sp as usize, pc);
+        self.stack_pointer.decrement(2);
+
+        self.program_counter.write(0x0000 + address as u16);
+        32
     }
 
     // 8-bit ALU
@@ -2495,6 +2513,18 @@ mod test {
         assert_eq!(cpu.get_flag(CPUFlag::N), true);
         assert_eq!(cpu.get_flag(CPUFlag::H), false);
         assert_eq!(cpu.get_flag(CPUFlag::C), false);
+    }
+
+    #[test]
+    fn instruction_rst() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC023);
+
+        cpu.rst(0x08);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
+        assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFFFE), 0xC023);
+        assert_eq!(cpu.program_counter.read(), 0x0008);
     }
 }
 
