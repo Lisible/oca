@@ -569,6 +569,7 @@ impl CPU {
             // JP a16
             0xC3 => cycles += self.jp_a16(),
             // CALL NZ,a16
+            0xC4 => cycles += self.call_flag_a16(CPUFlag::Z, false),
             // PUSH BC
             0xC5 => cycles += self.push_bi_register(&BiRegisterIdentifier::BC),
             // ADD A,d8
@@ -581,8 +582,9 @@ impl CPU {
             0xCA => cycles += self.jp_flag_a16(CPUFlag::Z, true),
             // PREFIX CB
             // CALL Z,a16
+            0xC4 => cycles += self.call_flag_a16(CPUFlag::Z, true),
             // CALL a16
-            //0xCD => cycles += self.call_a16(),
+            0xCD => cycles += self.call_a16(),
             // ADC A,d8
             // RST 08H
             // RET NC
@@ -592,6 +594,7 @@ impl CPU {
             // JP NC,a16
             0xD2 => cycles += self.jp_flag_a16(CPUFlag::C, false),
             // CALL NC,a16
+            0xC4 => cycles += self.call_flag_a16(CPUFlag::C, false),
             // PUSH DE
             0xD5 => cycles += self.push_bi_register(&BiRegisterIdentifier::DE),
             // SUB d8
@@ -602,6 +605,7 @@ impl CPU {
             // JP C,a16
             0xDA => cycles += self.jp_flag_a16(CPUFlag::C, true),
             // CALL C,a16
+            0xC4 => cycles += self.call_flag_a16(CPUFlag::C, true),
             // SBC A,d8
             // RST 18H
             // LDH (a8),A
@@ -662,16 +666,6 @@ impl CPU {
                                register_identifier: &RegisterIdentifier) -> u32 {
         let value = self.read_register(register_identifier);
         self.write_bi_register(bi_register_identifier, value as u16);
-        8
-    }
-
-    fn inc_bi_register(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
-        self.bi_registers.get_mut(&register_identifier).unwrap().increment(1);
-        8
-    }
-
-    fn dec_bi_register(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
-        self.bi_registers.get_mut(&register_identifier).unwrap().decrement(1);
         8
     }
 
@@ -762,43 +756,6 @@ impl CPU {
         let value = self.stack_pointer.read();
         self.memory_bus.borrow_mut().write_16bit(address as usize, value);
         20
-    }
-
-    fn add_bi_register_bi_register(&mut self,
-                                   first_register_identifier: &BiRegisterIdentifier,
-                                   second_register_identifier: &BiRegisterIdentifier) -> u32 {
-        use std::u32;
-
-        let lhs = self.read_bi_register(first_register_identifier);
-        let rhs = self.read_bi_register(second_register_identifier);
-        let sum = (lhs as u32).wrapping_add(rhs as u32);
-
-        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
-        self.set_flag(CPUFlag::C, sum > 0xFFFF);
-        self.set_flag(CPUFlag::N, false);
-
-        self.write_bi_register(first_register_identifier, lhs.wrapping_add(rhs));
-        8
-    }
-
-
-
-    fn add_bi_register_sp(&mut self,
-                          bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        use std::u32;
-
-        let lhs = self.read_bi_register(bi_register_identifier);
-        let rhs = self.stack_pointer.read();
-        let sum = (lhs as u32).wrapping_add(rhs as u32);
-
-        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
-        self.set_flag(CPUFlag::C, sum > 0xFFFF);
-        self.set_flag(CPUFlag::N, false);
-
-        self.write_bi_register(bi_register_identifier, lhs.wrapping_add(rhs));
-
-
-        8
     }
 
     fn ld_register_bi_register_ptr(&mut self,
@@ -958,6 +915,30 @@ impl CPU {
         }
 
         cycles
+    }
+
+    fn call_a16(&mut self) -> u32 {
+        let pc = self.program_counter.read();
+        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        self.program_counter.increment(2);
+
+        let sp = self.stack_pointer.read();
+        let next_instruction_address = self.program_counter.read();
+        self.memory_bus.borrow_mut().write_16bit(sp as usize, next_instruction_address);
+        self.stack_pointer.decrement(2);
+
+        self.program_counter.write(address);
+        12
+    }
+
+    fn call_flag_a16(&mut self, flag: CPUFlag, value: bool) -> u32 {
+        if self.get_flag(flag) == value {
+            self.call_a16();
+            24
+        } else {
+            self.program_counter.increment(2);
+            12
+        }
     }
 
     // 8-bit ALU
@@ -1258,6 +1239,51 @@ impl CPU {
         let address = self.read_bi_register(bi_register_identifier);
         let rhs = self.memory_bus.borrow().read_8bit(address as usize);
         self.cp(rhs);
+        8
+    }
+
+    // 16-bit ALU
+    fn add_bi_register_bi_register(&mut self,
+                                   first_register_identifier: &BiRegisterIdentifier,
+                                   second_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let lhs = self.read_bi_register(first_register_identifier);
+        let rhs = self.read_bi_register(second_register_identifier);
+        let sum = (lhs as u32).wrapping_add(rhs as u32);
+
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
+
+        self.write_bi_register(first_register_identifier, sum as u16);
+        8
+    }
+
+
+
+    fn add_bi_register_sp(&mut self,
+                          bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        use std::u32;
+
+        let lhs = self.read_bi_register(bi_register_identifier);
+        let rhs = self.stack_pointer.read();
+        let sum = (lhs as u32).wrapping_add(rhs as u32);
+
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
+
+        self.write_bi_register(bi_register_identifier, sum as u16);
+
+        8
+    }
+
+    fn inc_bi_register(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
+        self.bi_registers.get_mut(&register_identifier).unwrap().increment(1);
+        8
+    }
+
+    fn dec_bi_register(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
+        self.bi_registers.get_mut(&register_identifier).unwrap().decrement(1);
         8
     }
 
@@ -2223,6 +2249,46 @@ mod test {
 
         assert_ne!(cpu.stack_pointer.read(), 0xFFFE);
         assert_ne!(cpu.program_counter.read(), 0xC090);
+    }
+
+    #[test]
+    fn instruction_call_a16() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC000);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC000, 0xC999);
+
+        cpu.call_a16();
+
+        assert_eq!(cpu.memory_bus.borrow_mut().read_16bit(0xFFFE), 0xC002);
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
+        assert_eq!(cpu.program_counter.read(), 0xC999);
+    }
+
+    #[test]
+    fn instruction_call_flag_a16() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC000);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC000, 0xC999);
+        cpu.set_flag(CPUFlag::Z, true);
+
+        cpu.call_flag_a16(CPUFlag::Z, true);
+
+        assert_eq!(cpu.memory_bus.borrow_mut().read_16bit(0xFFFE), 0xC002);
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
+        assert_eq!(cpu.program_counter.read(), 0xC999);
+    }
+
+    #[test]
+    fn instruction_call_flag_a16_2() {
+        let mut cpu = create_cpu();
+        cpu.program_counter.write(0xC000);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC000, 0xC999);
+        cpu.set_flag(CPUFlag::Z, false);
+
+        cpu.call_flag_a16(CPUFlag::Z, true);
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.program_counter.read(), 0xC002);
     }
 }
 
