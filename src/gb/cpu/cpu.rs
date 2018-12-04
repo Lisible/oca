@@ -630,6 +630,7 @@ impl CPU {
             0xE7 => cycles += self.rst(0x20),
             // ADD SP,r8
             // JP (HL)
+            0xE9 => cycles += self.jp_bi_register_ptr(&BiRegisterIdentifier::HL),
             // LD (a16),A
             0xEA => cycles += self.ld_a16_ptr_register(&RegisterIdentifier::A),
             // XOR d8
@@ -916,6 +917,12 @@ impl CPU {
         }
 
         cycles
+    }
+
+    fn jp_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let address = self.read_bi_register(bi_register_identifier);
+        self.program_counter.write(address);
+        4
     }
 
     fn ret(&mut self) -> u32 {
@@ -2666,6 +2673,16 @@ mod test {
         cpu.ld_sp_bi_register(&BiRegisterIdentifier::HL);
 
         assert_eq!(cpu.stack_pointer.read(), 0xC356);
+    }
+
+    #[test]
+    fn instruction_jp_bi_register_ptr() {
+        let mut cpu = create_cpu();
+        cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC825);
+
+        cpu.jp_bi_register_ptr(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.program_counter.read(), 0xC825);
     }
 }
 
