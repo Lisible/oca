@@ -617,9 +617,11 @@ impl CPU {
             // RST 18H
             0xDF => cycles += self.rst(0x18),
             // LDH (a8),A
+            0xE0 => cycles += self.ldh_a8_ptr_register(&RegisterIdentifier::A),
             // POP HL
             0xE1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::HL),
             // LD (C),A
+            0xE2 => cycles += self.ld_register_ptr_register(&RegisterIdentifier::C, &RegisterIdentifier::A),
             // PUSH HL
             0xE5 => cycles += self.push_bi_register(&BiRegisterIdentifier::HL),
             // AND d8
@@ -629,14 +631,17 @@ impl CPU {
             // ADD SP,r8
             // JP (HL)
             // LD (a16),A
+            0xEA => cycles += self.ld_a16_ptr_register(&RegisterIdentifier::A),
             // XOR d8
             0xEE => cycles += self.and_d8(),
             // RST 28H
             0xEF => cycles += self.rst(0x28),
             // LDH A,(a8)
+            0xF0 => cycles += self.ldh_register_a8_ptr(&RegisterIdentifier::A),
             // POP AF
             0xF1 => cycles += self.pop_bi_register(&BiRegisterIdentifier::AF),
             // LD A,(C)
+            0xF2 => cycles += self.ld_register_register_ptr(&RegisterIdentifier::A, &RegisterIdentifier::C),
             // DI
             // PUSH AF
             0xF5 => cycles += self.push_bi_register(&BiRegisterIdentifier::AF),
@@ -965,6 +970,57 @@ impl CPU {
 
         self.program_counter.write(0x0000 + address as u16);
         32
+    }
+
+    fn ldh_a8_ptr_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let value = self.read_register(register_identifier);
+
+        let pc = self.program_counter.read();
+        let add_to_address = self.memory_bus.borrow().read_8bit(pc as usize);
+        self.program_counter.increment(1);
+
+        self.memory_bus.borrow_mut().write_8bit(0xFF00 + add_to_address as usize, value);
+        12
+    }
+
+    fn ld_register_ptr_register(&mut self,
+                                first_register_identifier: &RegisterIdentifier,
+                                second_register_identifier: &RegisterIdentifier) -> u32 {
+        let value = self.read_register(second_register_identifier);
+        let add_to_address = self.read_register(first_register_identifier);
+
+        self.memory_bus.borrow_mut().write_8bit(0xFF00 + add_to_address as usize, value);
+        8
+    }
+
+    fn ld_register_register_ptr(&mut self,
+                                first_register_identifier: &RegisterIdentifier,
+                                second_register_identifier: &RegisterIdentifier) -> u32 {
+        let add_to_address = self.read_register(second_register_identifier);
+        let value = self.memory_bus.borrow().read_8bit(0xFF00 + add_to_address as usize);
+        self.write_register(first_register_identifier, value);
+        8
+    }
+
+    fn ld_a16_ptr_register(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let value = self.read_register(register_identifier);
+
+        let pc = self.program_counter.read();
+        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        self.program_counter.increment(2);
+
+        self.memory_bus.borrow_mut().write_8bit(address as usize, value);
+        16
+    }
+
+    fn ldh_register_a8_ptr(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
+        let pc = self.program_counter.read();
+        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        self.program_counter.increment(2);
+
+        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        self.write_register(register_identifier, value);
+        16
     }
 
     // 8-bit ALU
@@ -1434,12 +1490,14 @@ mod test {
     use gb::memory::cartridge::*;
     use gb::memory::ram::*;
     use gb::memory::high_ram::*;
+    use gb::memory::io::*;
 
     fn create_cpu() -> CPU {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
         let ram = Rc::new(RefCell::new(Ram::new()));
         let high_ram = Rc::new(RefCell::new(HighRam::new()));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), high_ram.clone())));
+        let io = Rc::new(RefCell::new(IO::new()));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), high_ram.clone(), io.clone())));
         let mut cpu = CPU::new(memory_bus.clone());
         cpu.initialize();
         cpu
@@ -2525,6 +2583,72 @@ mod test {
         assert_eq!(cpu.stack_pointer.read(), 0xFFFC);
         assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFFFE), 0xC023);
         assert_eq!(cpu.program_counter.read(), 0x0008);
+    }
+
+    #[test]
+    fn instruction_ldh_a8_ptr_register() {
+        let mut cpu = create_cpu();
+
+        cpu.write_register(&RegisterIdentifier::A, 0xA5);
+        cpu.program_counter.write(0xC023);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0x03);
+
+        cpu.ldh_a8_ptr_register(&RegisterIdentifier::A);
+
+        assert_eq!(cpu.program_counter.read(), 0xC024);
+        assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFF03), 0xA5);
+    }
+
+    #[test]
+    fn instruction_ld_register_ptr_register() {
+        let mut cpu = create_cpu();
+
+        cpu.write_register(&RegisterIdentifier::A, 0xA5);
+        cpu.write_register(&RegisterIdentifier::C, 0x03);
+
+        cpu.ld_register_ptr_register(&RegisterIdentifier::C, &RegisterIdentifier::A);
+
+        assert_eq!(cpu.memory_bus.borrow().read_16bit(0xFF03), 0xA5);
+    }
+
+    #[test]
+    fn instruction_ld_a16_ptr_register() {
+        let mut cpu = create_cpu();
+
+        cpu.write_register(&RegisterIdentifier::A, 0xA5);
+        cpu.program_counter.write(0xC023);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC023, 0xC256);
+
+        cpu.ld_a16_ptr_register(&RegisterIdentifier::A);
+
+        assert_eq!(cpu.program_counter.read(), 0xC025);
+        assert_eq!(cpu.memory_bus.borrow().read_8bit(0xC256), 0xA5);
+    }
+
+    #[test]
+    fn instruction_ldh_register_a8_ptr() {
+        let mut cpu = create_cpu();
+
+        cpu.program_counter.write(0xC023);
+        cpu.memory_bus.borrow_mut().write_16bit(0xC023, 0xC256);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC256, 0x28);
+
+        cpu.ldh_register_a8_ptr(&RegisterIdentifier::A);
+
+        assert_eq!(cpu.program_counter.read(), 0xC025);
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x28);
+    }
+
+    #[test]
+    fn instruction_ld_register_register_ptr() {
+        let mut cpu = create_cpu();
+
+        cpu.write_register(&RegisterIdentifier::C, 0x3);
+        cpu.memory_bus.borrow_mut().write_8bit(0xFF03, 0x56);
+
+        cpu.ld_register_register_ptr(&RegisterIdentifier::A, &RegisterIdentifier::C);
+
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x56);
     }
 }
 

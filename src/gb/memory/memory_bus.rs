@@ -25,6 +25,7 @@
 use gb::memory::cartridge::Cartridge;
 use gb::memory::ram::Ram;
 use gb::memory::high_ram::HighRam;
+use gb::memory::io::IO;
 use gb::memory::memory::*;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -35,15 +36,20 @@ use std::cell::RefCell;
 pub struct MemoryBus {
     cartridge: Rc<RefCell<Cartridge>>,
     ram: Rc<RefCell<Ram>>,
-    high_ram: Rc<RefCell<HighRam>>
+    high_ram: Rc<RefCell<HighRam>>,
+    io: Rc<RefCell<IO>>
 }
 
 impl MemoryBus {
-    pub fn new(cartridge: Rc<RefCell<Cartridge>>, ram: Rc<RefCell<Ram>>, high_ram: Rc<RefCell<HighRam>>) -> MemoryBus {
+    pub fn new(cartridge: Rc<RefCell<Cartridge>>,
+               ram: Rc<RefCell<Ram>>,
+               high_ram: Rc<RefCell<HighRam>>,
+               io: Rc<RefCell<IO>>) -> MemoryBus {
         MemoryBus {
             cartridge,
             ram,
-            high_ram
+            high_ram,
+            io
         }
     }
 
@@ -60,6 +66,8 @@ impl ReadMemory for MemoryBus {
             self.ram.borrow().read_8bit(address - 0xE000)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow().read_8bit(address - 0xFF80)
+        }  else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().read_8bit(address - 0xFF00)
         } else {
             panic!("Unmapped memory access")
         }
@@ -74,6 +82,8 @@ impl ReadMemory for MemoryBus {
             self.ram.borrow().read_8bit_signed(address - 0xE000)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow().read_8bit_signed(address - 0xFF80)
+        }  else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().read_8bit_signed(address - 0xFF00)
         } else {
             panic!("Unmapped memory access")
         }
@@ -88,6 +98,8 @@ impl ReadMemory for MemoryBus {
             self.ram.borrow().read_16bit(address - 0xE000)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow().read_16bit(address - 0xFF80)
+        } else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().read_16bit(address - 0xFF00)
         } else {
             panic!("Unmapped memory access")
         }
@@ -104,6 +116,8 @@ impl WriteMemory for MemoryBus {
             self.ram.borrow_mut().write_8bit(address - 0xE000, value)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow_mut().write_8bit(address - 0xFF80, value)
+        } else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().write_8bit(address - 0xFF00, value)
         } else {
             panic!("Unmapped memory access")
         }
@@ -118,6 +132,8 @@ impl WriteMemory for MemoryBus {
             self.ram.borrow_mut().write_8bit_signed(address - 0xE000, value)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow_mut().write_8bit_signed(address - 0xFF80, value)
+        }  else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().write_8bit_signed(address - 0xFF00, value)
         } else {
             panic!("Unmapped memory access")
         }
@@ -132,6 +148,8 @@ impl WriteMemory for MemoryBus {
             self.ram.borrow_mut().write_16bit(address - 0xE000, value)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow_mut().write_16bit(address - 0xFF80, value)
+        }  else if (address >= 0xFF00) && (address < 0xFF4C) {
+            self.io.borrow_mut().write_16bit(address - 0xFF00, value)
         } else {
             panic!("Unmapped memory access")
         }
@@ -146,10 +164,12 @@ mod test {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0;0x8000])));
         let ram = Rc::new(RefCell::new(Ram::new()));
         let high_ram = Rc::new(RefCell::new(HighRam::new()));
+        let io = Rc::new(RefCell::new(IO::new()));
 
         MemoryBus::new(cartridge.clone(),
                        ram.clone(),
-                       high_ram.clone())
+                       high_ram.clone(),
+                       io.clone())
     }
 
     #[test]
@@ -258,5 +278,53 @@ mod test {
 
         bus.write_16bit(0xFF90, 0x1122);
         assert_eq!(bus.high_ram.borrow().read_16bit(0x10), 0x1122);
+    }
+
+    #[test]
+    fn can_read_8bit_from_io() {
+        let mut bus = create_bus();
+        bus.io.borrow_mut().write_8bit(0x10, 0x11);
+
+        assert_eq!(bus.read_8bit(0xFF10), 0x11);
+    }
+
+    #[test]
+    fn can_read_8bit_signed_from_io() {
+        let mut bus = create_bus();
+        bus.io.borrow_mut().write_8bit_signed(0x10, 0x11i8);
+
+        assert_eq!(bus.read_8bit_signed(0xFF10), 0x11i8);
+    }
+
+    #[test]
+    fn can_read_16bit_from_io() {
+        let mut bus = create_bus();
+        bus.io.borrow_mut().write_16bit(0x10, 0x1122);
+
+        assert_eq!(bus.read_16bit(0xFF10), 0x1122);
+    }
+
+    #[test]
+    fn can_write_8bit_to_io() {
+        let mut bus = create_bus();
+
+        bus.write_8bit(0xFF10, 0x11);
+        assert_eq!(bus.io.borrow().read_8bit(0x10), 0x11);
+    }
+
+    #[test]
+    fn can_write_8bit_signed_to_io() {
+        let mut bus = create_bus();
+
+        bus.write_8bit_signed(0xFF10, 0x11i8);
+        assert_eq!(bus.io.borrow().read_8bit_signed(0x10), 0x11i8);
+    }
+
+    #[test]
+    fn can_write_16bit_to_io() {
+        let mut bus = create_bus();
+
+        bus.write_16bit(0xFF10, 0x1122);
+        assert_eq!(bus.io.borrow().read_16bit(0x10), 0x1122);
     }
 }

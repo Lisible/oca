@@ -47,4 +47,3 @@ pub enum BiRegisterIdentifier {
     DE,
     HL,
 }
-
