@@ -625,6 +625,7 @@ impl CPU {
             // RET C
             0xD8 => cycles += self.ret_flag(CPUFlag::C, true),
             // RETI
+            0xD9 => cycles += self.reti(),
             // JP C,a16
             0xDA => cycles += self.jp_flag_a16(CPUFlag::C, true),
             // CALL C,a16
@@ -646,6 +647,7 @@ impl CPU {
             // RST 20H
             0xE7 => cycles += self.rst(0x20),
             // ADD SP,r8
+            0xE8 => cycles += self.add_sp_r8(),
             // JP (HL)
             0xE9 => cycles += self.jp_bi_register_ptr(&BiRegisterIdentifier::HL),
             // LD (a16),A
@@ -669,6 +671,7 @@ impl CPU {
             // RST 30H
             0xF7 => cycles += self.rst(0x30),
             // LD HL,SP+r8
+            0xF8 => cycles += self.ld_bi_register_sppr8(&BiRegisterIdentifier::HL),
             // LD SP,HL
             0xF9 => cycles += self.ld_sp_bi_register(&BiRegisterIdentifier::HL),
             // LD A,(a16)
@@ -697,6 +700,34 @@ impl CPU {
     fn di(&mut self) -> u32 {
         self.interrupt_disable_delay = 1;
         4
+    }
+
+    fn reti(&mut self) -> u32 {
+        let sp = self.stack_pointer.read();
+        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        self.stack_pointer.increment(2);
+        self.program_counter.write(value);
+        self.interrupt_master_enable = true;
+        self.interrupt_enable_delay = 0;
+        8
+    }
+
+    fn ld_bi_register_sppr8(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
+        let sp = self.stack_pointer.read();
+        let pc = self.program_counter.read();
+
+        let value_to_add = self.memory_bus.borrow().read_8bit_signed(pc as usize);
+        self.program_counter.increment(1);
+
+        let sum = (sp as i32).wrapping_add(value_to_add as i32);
+
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (sp & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::Z, false);
+
+        self.write_bi_register(bi_register_identifier, sum as u16);
+        12
     }
 
     fn ld_bi_register_d16(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
@@ -1486,6 +1517,23 @@ impl CPU {
     fn dec_bi_register(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
         self.bi_registers.get_mut(&register_identifier).unwrap().decrement(1);
         8
+    }
+
+    fn add_sp_r8(&mut self) -> u32 {
+        let lhs = self.stack_pointer.read();
+        let pc = self.program_counter.read();
+        let rhs = self.memory_bus.borrow().read_8bit_signed(pc as usize);
+        self.program_counter.increment(1);
+
+        let sum = (lhs as u32).wrapping_add(rhs as u32);
+
+        self.set_flag(CPUFlag::H, ((sum & 0x0FFF) as u16) < (lhs & 0x0FFF));
+        self.set_flag(CPUFlag::C, sum > 0xFFFF);
+        self.set_flag(CPUFlag::N, false);
+        self.set_flag(CPUFlag::Z, false);
+
+        self.stack_pointer.write(sum as u16);
+        16
     }
 
 
@@ -2753,6 +2801,44 @@ mod test {
         cpu.ei();
 
         assert_eq!(cpu.interrupt_enable_delay, 1);
+    }
+
+    #[test]
+    fn instruction_add_sp_r8() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.program_counter.write(0xC023);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC023, 2);
+
+        cpu.add_sp_r8();
+
+        assert_eq!(cpu.program_counter.read(), 0xC024);
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+    }
+
+    #[test]
+    fn instruction_reti() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC024);
+
+        cpu.reti();
+
+        assert_eq!(cpu.stack_pointer.read(), 0xFFFE);
+        assert_eq!(cpu.program_counter.read(), 0xC024);
+        assert_eq!(cpu.interrupt_master_enable, true);
+    }
+
+    #[test]
+    fn instruction_ld_bi_register_sppr8() {
+        let mut cpu = create_cpu();
+        cpu.stack_pointer.write(0xFFFC);
+        cpu.program_counter.write(0xC023);
+        cpu.memory_bus.borrow_mut().write_8bit_signed(0xC023, -2);
+
+        cpu.ld_bi_register_sppr8(&BiRegisterIdentifier::HL);
+
+        assert_eq!(cpu.read_bi_register(&BiRegisterIdentifier::HL), 0xFFFA);
     }
 }
 
