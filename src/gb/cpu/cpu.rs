@@ -71,8 +71,22 @@ pub struct CPU {
     ///
     memory_bus: Rc<RefCell<MemoryBus>>,
 
+    ///
+    /// The interrupt master enable flag
+    ///
+    interrupt_master_enable: bool,
+    ///
+    /// Delay before disabling interrupts (number of instructions)
+    ///
+    interrupt_disable_delay: u8,
+    ///
+    /// Delay before enabling interrupts (number of instructions)
+    ///
+    interrupt_enable_delay: u8,
+
     stopped: bool,
     halted: bool,
+
 }
 
 impl CPU {
@@ -108,6 +122,9 @@ impl CPU {
             stack_pointer: Register16Bit::new(),
             program_counter: Register16Bit::new(),
             memory_bus,
+            interrupt_master_enable: false,
+            interrupt_disable_delay: 0,
+            interrupt_enable_delay: 0,
             stopped: false,
             halted: false
         }
@@ -644,6 +661,7 @@ impl CPU {
             // LD A,(C)
             0xF2 => cycles += self.ld_register_register_ptr(&RegisterIdentifier::A, &RegisterIdentifier::C),
             // DI
+            0xF3 => cycles += self.di(),
             // PUSH AF
             0xF5 => cycles += self.push_bi_register(&BiRegisterIdentifier::AF),
             // OR d8
@@ -656,6 +674,7 @@ impl CPU {
             // LD A,(a16)
             0xFA => cycles += self.ld_register_a16_ptr(&RegisterIdentifier::A),
             // EI
+            0xFB => cycles += self.ei(),
             // CP d8
             0xFE => cycles += self.cp_d8(),
             // RST 38H
@@ -667,6 +686,16 @@ impl CPU {
 
 
     fn nop(&mut self) -> u32 {
+        4
+    }
+
+    fn ei(&mut self) -> u32 {
+        self.interrupt_enable_delay = 1;
+        4
+    }
+
+    fn di(&mut self) -> u32 {
+        self.interrupt_disable_delay = 1;
         4
     }
 
@@ -2706,6 +2735,24 @@ mod test {
 
         assert_eq!(cpu.program_counter.read(), 0xC827);
         assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x35);
+    }
+
+    #[test]
+    fn instruction_di() {
+        let mut cpu = create_cpu();
+
+        cpu.di();
+
+        assert_eq!(cpu.interrupt_disable_delay, 1);
+    }
+
+    #[test]
+    fn instruction_ei() {
+        let mut cpu = create_cpu();
+
+        cpu.ei();
+
+        assert_eq!(cpu.interrupt_enable_delay, 1);
     }
 }
 
