@@ -1204,7 +1204,7 @@ impl CPU {
         let pc = self.program_counter.read();
 
         if self.get_flag(flag) == jump_if_true {
-            self.program_counter.write((pc as i32 + value as i32 - 1) as u16);
+            self.program_counter.write((pc as i32 + value as i32) as u16);
         }
 
         8
@@ -2251,23 +2251,6 @@ mod test {
 
     #[test]
     fn can_set_flag() {
-        let mut cpu = create_cpu();
-
-        {
-            let register_f = cpu.registers[&RegisterIdentifier::F].borrow();
-            assert_eq!(register_f.read(), 0x00);
-        }
-
-        cpu.set_flag(CPUFlag::Z, true);
-
-        {
-            let register_f = cpu.registers[&RegisterIdentifier::F].borrow();
-            assert_eq!(register_f.read(), 0b10000000);
-        }
-    }
-
-    #[test]
-    fn can_unset_flag() {
         let mut cpu = create_cpu();
 
         {
