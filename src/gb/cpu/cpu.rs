@@ -72,6 +72,10 @@ pub struct CPU {
     memory_bus: Rc<RefCell<MemoryBus>>,
 
     ///
+    /// The interrupt enable register
+    ///
+    interrupt_enable_register: Register8Bit,
+    ///
     /// The interrupt master enable flag
     ///
     interrupt_master_enable: bool,
@@ -116,18 +120,22 @@ impl CPU {
                             BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::L]),
                                                 Rc::clone(&registers[&RegisterIdentifier::H])));
 
-        CPU {
+        let mut cpu = CPU {
             registers,
             bi_registers,
             stack_pointer: Register16Bit::new(),
             program_counter: Register16Bit::new(),
             memory_bus,
+            interrupt_enable_register: Register8Bit::new(),
             interrupt_master_enable: false,
             interrupt_disable_delay: 0,
             interrupt_enable_delay: 0,
             stopped: false,
             halted: false
-        }
+        };
+        cpu.initialize();
+
+        cpu
     }
 
     ///
@@ -180,8 +188,43 @@ impl CPU {
     /// 
     pub fn initialize(&mut self) {
         self.registers.iter_mut().for_each(|(_, r)| r.borrow_mut().write(0x00));
-        self.program_counter.write(0x0);
+        self.program_counter.write(0x100);
         self.stack_pointer.write(0xFFFE);
+        self.write_bi_register(&BiRegisterIdentifier::AF, 0x01B0);
+        self.write_bi_register(&BiRegisterIdentifier::BC, 0x0013);
+        self.write_bi_register(&BiRegisterIdentifier::DE, 0x00D8);
+        self.write_bi_register(&BiRegisterIdentifier::HL, 0x014D);
+        self.memory_bus.borrow_mut().write_8bit(0xFF05, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF06, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF07, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF10, 0x80);
+        self.memory_bus.borrow_mut().write_8bit(0xFF11, 0xBF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF12, 0xF3);
+        self.memory_bus.borrow_mut().write_8bit(0xFF14, 0xBF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF16, 0x3F);
+        self.memory_bus.borrow_mut().write_8bit(0xFF17, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF19, 0xBF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF1A, 0x7F);
+        self.memory_bus.borrow_mut().write_8bit(0xFF1B, 0xFF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF1C, 0x9F);
+        self.memory_bus.borrow_mut().write_8bit(0xFF1E, 0xBF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF20, 0xFF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF21, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF22, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF23, 0xBF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF24, 0x77);
+        self.memory_bus.borrow_mut().write_8bit(0xFF25, 0xF3);
+        self.memory_bus.borrow_mut().write_8bit(0xFF26, 0xF1);
+        self.memory_bus.borrow_mut().write_8bit(0xFF40, 0x91);
+        self.memory_bus.borrow_mut().write_8bit(0xFF42, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF43, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF45, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF47, 0xFC);
+        self.memory_bus.borrow_mut().write_8bit(0xFF48, 0xFF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF49, 0xFF);
+        self.memory_bus.borrow_mut().write_8bit(0xFF4A, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFF4B, 0x00);
+        self.interrupt_enable_register.write(0x00);
     }
 
     ///
@@ -190,7 +233,21 @@ impl CPU {
     pub fn step(&mut self) {
         let mut cycles = 0;
 
-        let opcode = self.program_counter.read();
+        let pc = self.program_counter.read();
+        let opcode = self.memory_bus.borrow().read_8bit(pc as usize);
+        println!("opcode: 0x{:X}, pc: {:X}", opcode, pc);
+        println!("A:{:X}, B: {:X}, C: {:X}, D: {:X}, E: {:X}, F: {:X}, H: {:X}, L: {:X}",
+                 self.read_register(&RegisterIdentifier::A),
+                 self.read_register(&RegisterIdentifier::B),
+                 self.read_register(&RegisterIdentifier::C),
+                 self.read_register(&RegisterIdentifier::D),
+                 self.read_register(&RegisterIdentifier::E),
+                 self.read_register(&RegisterIdentifier::F),
+                 self.read_register(&RegisterIdentifier::H),
+                 self.read_register(&RegisterIdentifier::L));
+
+        println!();
+
         self.program_counter.increment(1);
         match opcode {
             // NOP
@@ -1147,7 +1204,7 @@ impl CPU {
         let pc = self.program_counter.read();
 
         if self.get_flag(flag) == jump_if_true {
-            self.program_counter.write((pc as i32 + value as i32) as u16);
+            self.program_counter.write((pc as i32 + value as i32 - 1) as u16);
         }
 
         8
@@ -1311,7 +1368,14 @@ impl CPU {
         let add_to_address = self.memory_bus.borrow().read_8bit(pc as usize);
         self.program_counter.increment(1);
 
-        self.memory_bus.borrow_mut().write_8bit(0xFF00 + add_to_address as usize, value);
+        let resulting_address = 0xFF00 + add_to_address as usize;
+
+        if resulting_address == 0xFFFF {
+            self.interrupt_enable_register.write(value);
+        } else {
+            self.memory_bus.borrow_mut().write_8bit(resulting_address, value);
+        }
+
         12
     }
 
@@ -2137,15 +2201,17 @@ mod test {
     use super::*;
     use gb::memory::cartridge::*;
     use gb::memory::ram::*;
+    use gb::memory::oam::*;
     use gb::memory::high_ram::*;
     use gb::memory::io::*;
 
     fn create_cpu() -> CPU {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
         let ram = Rc::new(RefCell::new(Ram::new()));
+        let oam = Rc::new(RefCell::new(Oam::new()));
         let high_ram = Rc::new(RefCell::new(HighRam::new()));
         let io = Rc::new(RefCell::new(IO::new()));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), high_ram.clone(), io.clone())));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), oam.clone(), high_ram.clone(), io.clone())));
         let mut cpu = CPU::new(memory_bus.clone());
         cpu.initialize();
         cpu

@@ -24,6 +24,7 @@
 
 use gb::memory::cartridge::Cartridge;
 use gb::memory::ram::Ram;
+use gb::memory::oam::Oam;
 use gb::memory::high_ram::HighRam;
 use gb::memory::io::IO;
 use gb::memory::memory::*;
@@ -36,6 +37,7 @@ use std::cell::RefCell;
 pub struct MemoryBus {
     cartridge: Rc<RefCell<Cartridge>>,
     ram: Rc<RefCell<Ram>>,
+    oam: Rc<RefCell<Oam>>,
     high_ram: Rc<RefCell<HighRam>>,
     io: Rc<RefCell<IO>>
 }
@@ -43,11 +45,13 @@ pub struct MemoryBus {
 impl MemoryBus {
     pub fn new(cartridge: Rc<RefCell<Cartridge>>,
                ram: Rc<RefCell<Ram>>,
+               oam: Rc<RefCell<Oam>>,
                high_ram: Rc<RefCell<HighRam>>,
                io: Rc<RefCell<IO>>) -> MemoryBus {
         MemoryBus {
             cartridge,
             ram,
+            oam,
             high_ram,
             io
         }
@@ -62,8 +66,10 @@ impl ReadMemory for MemoryBus {
             self.cartridge.borrow().read_8bit(address)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.borrow().read_8bit(address - 0xC000)
-        } else if (address >= 0xE000) && (address < 0xF000) {
+        } else if (address >= 0xE000) && (address < 0xFE00) {
             self.ram.borrow().read_8bit(address - 0xE000)
+        } else if (address >= 0xFE00) && (address < 0xFEA0) {
+            self.oam.borrow().read_8bit(address - 0xFE00)
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow().read_8bit(address - 0xFF80)
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
@@ -112,14 +118,16 @@ impl WriteMemory for MemoryBus {
             panic!("Cartridge ROM is read-only !!!")
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.borrow_mut().write_8bit(address - 0xC000, value)
-        } else if (address >= 0xE000) && (address < 0xF000) {
+        } else if (address >= 0xE000) && (address < 0xFE00) {
             self.ram.borrow_mut().write_8bit(address - 0xE000, value)
-        } else if (address >= 0xFF80) && (address < 0xFFFF) {
+        } else if (address >= 0xFE00) && (address < 0xFEA0) {
+            self.oam.borrow_mut().write_8bit(address - 0xFE00, value)
+        }  else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.borrow_mut().write_8bit(address - 0xFF80, value)
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.borrow_mut().write_8bit(address - 0xFF00, value)
         } else {
-            panic!("Unmapped memory access")
+            panic!("Unmapped memory access: 0x{:X}", address)
         }
     }
 
@@ -163,11 +171,13 @@ mod test {
     fn create_bus() -> MemoryBus {
         let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0;0x8000])));
         let ram = Rc::new(RefCell::new(Ram::new()));
+        let oam = Rc::new(RefCell::new(Oam::new()));
         let high_ram = Rc::new(RefCell::new(HighRam::new()));
         let io = Rc::new(RefCell::new(IO::new()));
 
         MemoryBus::new(cartridge.clone(),
                        ram.clone(),
+                       oam.clone(),
                        high_ram.clone(),
                        io.clone())
     }
