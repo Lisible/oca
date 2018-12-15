@@ -70,19 +70,22 @@ impl Console {
 
     pub fn start(&mut self) {
         use std::io;
+        use std::thread::*;
+        use std::time::*;
 
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
         let window = video_subsystem.window("oca GameBoy Emulator", 800, 600).position_centered().build().unwrap();
 
-        self.load_rom("/home/clements/Documents/bgb/bgbtest.gb");
+        self.load_rom("/home/clements/Documents/t.gb");
         self.cpu.initialize();
 
         loop {
-
             self.cpu.step();
 
+            //let mut l = String::new();
+            //io::stdin().read_line(&mut l);
         }
     }
 

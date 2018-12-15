@@ -190,10 +190,14 @@ impl CPU {
         self.registers.iter_mut().for_each(|(_, r)| r.borrow_mut().write(0x00));
         self.program_counter.write(0x100);
         self.stack_pointer.write(0xFFFE);
-        self.write_bi_register(&BiRegisterIdentifier::AF, 0x01B0);
-        self.write_bi_register(&BiRegisterIdentifier::BC, 0x0013);
-        self.write_bi_register(&BiRegisterIdentifier::DE, 0x00D8);
-        self.write_bi_register(&BiRegisterIdentifier::HL, 0x014D);
+        self.write_register(&RegisterIdentifier::A, 0x01);
+        self.write_register(&RegisterIdentifier::F, 0xB0);
+        self.write_register(&RegisterIdentifier::B, 0x00);
+        self.write_register(&RegisterIdentifier::C, 0x13);
+        self.write_register(&RegisterIdentifier::D, 0x00);
+        self.write_register(&RegisterIdentifier::E, 0xD8);
+        self.write_register(&RegisterIdentifier::H, 0x01);
+        self.write_register(&RegisterIdentifier::L, 0x4D);
         self.memory_bus.borrow_mut().write_8bit(0xFF05, 0x00);
         self.memory_bus.borrow_mut().write_8bit(0xFF06, 0x00);
         self.memory_bus.borrow_mut().write_8bit(0xFF07, 0x00);
@@ -235,8 +239,8 @@ impl CPU {
 
         let pc = self.program_counter.read();
         let opcode = self.memory_bus.borrow().read_8bit(pc as usize);
-        println!("opcode: 0x{:X}, pc: {:X}", opcode, pc);
-        println!("A:{:X}, B: {:X}, C: {:X}, D: {:X}, E: {:X}, F: {:X}, H: {:X}, L: {:X}",
+        println!("opcode: 0x{:X}, pc: 0x{:X}", opcode, pc);
+        println!("A: 0x{:X}, B: 0x{:X}, C: 0x{:X}, D: 0x{:X}, E: 0x{:X}, F: 0x{:X}, H: 0x{:X}, L: 0x{:X}",
                  self.read_register(&RegisterIdentifier::A),
                  self.read_register(&RegisterIdentifier::B),
                  self.read_register(&RegisterIdentifier::C),
@@ -245,9 +249,12 @@ impl CPU {
                  self.read_register(&RegisterIdentifier::F),
                  self.read_register(&RegisterIdentifier::H),
                  self.read_register(&RegisterIdentifier::L));
+        println!("Z: {}", self.get_flag(CPUFlag::Z));
+        println!("N: {}", self.get_flag(CPUFlag::N));
+        println!("H: {}", self.get_flag(CPUFlag::H));
+        println!("C: {}", self.get_flag(CPUFlag::C));
 
         println!();
-
         self.program_counter.increment(1);
         match opcode {
             // NOP
@@ -1183,7 +1190,7 @@ impl CPU {
         self.program_counter.increment(1);
 
         let pc = self.program_counter.read();
-        self.program_counter.write((pc as i32 + value as i32) as u16);
+        self.program_counter.write((pc as i32 + value as i32 - 1) as u16);
         12
     }
 
