@@ -1418,10 +1418,9 @@ impl CPU {
 
     fn ldh_register_a8_ptr(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
         let pc = self.program_counter.read();
-        let address = self.memory_bus.borrow().read_16bit(pc as usize);
-        self.program_counter.increment(2);
-
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let address_to_add = self.memory_bus.borrow().read_8bit(pc as usize);
+        self.program_counter.increment(1);
+        let value = self.memory_bus.borrow().read_8bit(0xFF00 + address_to_add as usize);
         self.write_register(register_identifier, value);
         16
     }
@@ -2277,7 +2276,11 @@ mod test {
     #[test]
     fn can_get_flag() {
         let mut cpu = create_cpu();
+
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
         cpu.set_flag(CPUFlag::H, true);
+        cpu.set_flag(CPUFlag::C, false);
 
         assert_eq!(cpu.get_flag(CPUFlag::H), true);
         assert_eq!(cpu.get_flag(CPUFlag::C), false);
@@ -2286,6 +2289,11 @@ mod test {
     #[test]
     fn instruction_rla_carry0() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rla();
 
@@ -2351,6 +2359,11 @@ mod test {
     #[test]
     fn instruction_rra_carry0() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b11010001);
         cpu.rra();
 
@@ -2378,7 +2391,7 @@ mod test {
         cpu.jr_r8();
 
         let pc = cpu.program_counter.read();
-        assert_eq!(pc, 0xC008);
+        assert_eq!(pc, 0xC007);
     }
 
     #[test]
@@ -2549,7 +2562,12 @@ mod test {
     #[test]
     fn instruction_daa() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
         cpu.write_register(&RegisterIdentifier::A, 0xC0);
+
 
         cpu.daa();
 
@@ -2562,6 +2580,9 @@ mod test {
         use std::u8;
 
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
         cpu.set_flag(CPUFlag::C, true);
         cpu.write_register(&RegisterIdentifier::A, 0x20);
 
@@ -2688,7 +2709,10 @@ mod test {
     #[test]
     fn instruction_ccf_2() {
         let mut cpu = create_cpu();
-        cpu.set_flag(CPUFlag::N, true);
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
 
         cpu.ccf();
 
@@ -3036,6 +3060,11 @@ mod test {
     #[test]
     fn instruction_jp_flag_a16() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.program_counter.write(0xC035);
         cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
 
@@ -3048,6 +3077,9 @@ mod test {
     fn instruction_jp_flag_a16_2() {
         let mut cpu = create_cpu();
         cpu.set_flag(CPUFlag::Z, true);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
         cpu.program_counter.write(0xC035);
         cpu.memory_bus.borrow_mut().write_16bit(0xC035, 0xC999);
 
@@ -3084,6 +3116,8 @@ mod test {
     #[test]
     fn instruction_ret_flag_2() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.stack_pointer.write(0xFFFC);
         cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
 
@@ -3096,6 +3130,8 @@ mod test {
     #[test]
     fn instruction_ret_flag_3() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::C, false)
+        ;
         cpu.stack_pointer.write(0xFFFC);
         cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
 
@@ -3334,13 +3370,13 @@ mod test {
         let mut cpu = create_cpu();
 
         cpu.program_counter.write(0xC023);
-        cpu.memory_bus.borrow_mut().write_16bit(0xC023, 0xC256);
-        cpu.memory_bus.borrow_mut().write_8bit(0xC256, 0x28);
+        cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0x44);
+        cpu.memory_bus.borrow_mut().write_8bit(0xFF44, 0x78);
 
         cpu.ldh_register_a8_ptr(&RegisterIdentifier::A);
 
-        assert_eq!(cpu.program_counter.read(), 0xC025);
-        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x28);
+        assert_eq!(cpu.program_counter.read(), 0xC024);
+        assert_eq!(cpu.read_register(&RegisterIdentifier::A), 0x78);
     }
 
     #[test]
@@ -3539,6 +3575,11 @@ mod test {
     #[test]
     fn instruction_rl_register() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b01000000);
 
         cpu.rl_register(&RegisterIdentifier::A);
@@ -3550,6 +3591,11 @@ mod test {
     #[test]
     fn instruction_rl_register_2() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b10000000);
 
         cpu.rl_register(&RegisterIdentifier::A);
@@ -3573,6 +3619,11 @@ mod test {
     #[test]
     fn instruction_rl_bi_register_ptr() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC023);
         cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0b01000000);
 
@@ -3585,6 +3636,11 @@ mod test {
     #[test]
     fn instruction_rl_bi_register_ptr_2() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC023);
         cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0b10000000);
 
@@ -3611,6 +3667,11 @@ mod test {
     #[test]
     fn instruction_rr_register() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b00000010);
 
         cpu.rr_register(&RegisterIdentifier::A);
@@ -3622,6 +3683,11 @@ mod test {
     #[test]
     fn instruction_rr_register_2() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_register(&RegisterIdentifier::A, 0b00000001);
 
         cpu.rr_register(&RegisterIdentifier::A);
@@ -3645,6 +3711,11 @@ mod test {
     #[test]
     fn instruction_rr_bi_register_ptr() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC023);
         cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0b00000010);
 
@@ -3657,6 +3728,11 @@ mod test {
     #[test]
     fn instruction_rr_bi_register_ptr_2() {
         let mut cpu = create_cpu();
+        cpu.set_flag(CPUFlag::Z, false);
+        cpu.set_flag(CPUFlag::N, false);
+        cpu.set_flag(CPUFlag::H, false);
+        cpu.set_flag(CPUFlag::C, false);
+
         cpu.write_bi_register(&BiRegisterIdentifier::HL, 0xC023);
         cpu.memory_bus.borrow_mut().write_8bit(0xC023, 0b00000001);
 

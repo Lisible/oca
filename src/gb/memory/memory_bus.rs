@@ -75,7 +75,7 @@ impl ReadMemory for MemoryBus {
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.borrow_mut().read_8bit(address - 0xFF00)
         } else {
-            panic!("Unmapped memory access")
+            panic!("Unmapped memory access: {:X}", address)
         }
     }
 
