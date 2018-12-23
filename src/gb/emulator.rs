@@ -22,8 +22,6 @@
 * SOFTWARE.
 */
 
-extern crate sdl2;
-
 use gb::cpu::cpu::CPU;
 use gb::memory::memory_bus::MemoryBus;
 
@@ -31,18 +29,17 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 
-
-pub struct Console {
+pub struct Emulator {
     cpu: CPU,
     memory_bus: Rc<RefCell<MemoryBus>>
 }
 
-impl Console {
-    pub fn new() -> Console {
+impl Emulator {
+    pub fn new() -> Emulator {
         let memory_bus = Rc::new(RefCell::new(MemoryBus::new()));
         let cpu = CPU::new(memory_bus.clone());
 
-        Console {
+        Emulator {
             cpu,
             memory_bus,
         }
@@ -52,9 +49,6 @@ impl Console {
         self.cpu.initialize();
         loop {
             self.cpu.step();
-
-            //let mut l = String::new();
-            //io::stdin().read_line(&mut l);
         }
     }
 }

@@ -22,6 +22,6 @@
 * SOFTWARE.
 */
 
-pub mod console;
+pub mod emulator;
 mod cpu;
 mod memory;

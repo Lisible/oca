@@ -25,7 +25,7 @@
 extern crate oca;
 
 fn main() {
-    let mut console = oca::gb::console::Console::new();
+    let mut console = oca::gb::emulator::Emulator::new();
 
     console.start();
 }
