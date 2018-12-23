@@ -24,8 +24,3 @@
 
 pub mod memory_bus;
 pub mod memory;
-pub mod cartridge;
-pub mod ram;
-pub mod high_ram;
-pub mod io;
-pub mod oam;

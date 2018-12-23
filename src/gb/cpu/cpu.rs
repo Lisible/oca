@@ -238,7 +238,7 @@ impl CPU {
         let mut cycles = 0;
 
         let pc = self.program_counter.read();
-        let opcode = self.memory_bus.borrow().read_8bit(pc as usize);
+        let opcode = self.memory_bus.borrow().read_8bit(pc);
         println!("opcode: 0x{:X}, pc: 0x{:X}", opcode, pc);
         println!("A: 0x{:X}, B: 0x{:X}, C: 0x{:X}, D: 0x{:X}, E: 0x{:X}, F: 0x{:X}, H: 0x{:X}, L: 0x{:X}",
                  self.read_register(&RegisterIdentifier::A),
@@ -753,7 +753,7 @@ impl CPU {
 
     fn cb_instruction(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let opcode = self.memory_bus.borrow().read_8bit(pc as usize);
+        let opcode = self.memory_bus.borrow().read_8bit(pc);
         match opcode {
             0x00 => self.rlc_register(&RegisterIdentifier::B),
             0x01 => self.rlc_register(&RegisterIdentifier::C),
@@ -1031,7 +1031,7 @@ impl CPU {
 
     fn reti(&mut self) -> u32 {
         let sp = self.stack_pointer.read();
-        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        let value = self.memory_bus.borrow().read_16bit(sp);
         self.stack_pointer.increment(2);
         self.program_counter.write(value);
         self.interrupt_master_enable = true;
@@ -1043,7 +1043,7 @@ impl CPU {
         let sp = self.stack_pointer.read();
         let pc = self.program_counter.read();
 
-        let value_to_add = self.memory_bus.borrow().read_8bit_signed(pc as usize);
+        let value_to_add = self.memory_bus.borrow().read_8bit_signed(pc);
         self.program_counter.increment(1);
 
         let sum = (sp as i32).wrapping_add(value_to_add as i32);
@@ -1058,7 +1058,7 @@ impl CPU {
     }
 
     fn ld_bi_register_d16(&mut self, register_identifier: &BiRegisterIdentifier) -> u32 {
-        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read());
         self.program_counter.increment(2);
 
         self.write_bi_register(register_identifier, value);
@@ -1066,7 +1066,7 @@ impl CPU {
     }
 
     fn ld_sp_d16(&mut self) -> u32 {
-        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read());
         self.program_counter.increment(2);
         self.stack_pointer.write(value);
         12
@@ -1081,7 +1081,7 @@ impl CPU {
     }
 
     fn ld_register_d8(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
-        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read());
         self.program_counter.increment(1);
 
         self.write_register(register_identifier, value);
@@ -1154,7 +1154,7 @@ impl CPU {
     }
 
     fn ld_a16_sp(&mut self) -> u32 {
-        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_16bit(self.program_counter.read());
         self.program_counter.increment(2);
         self.stack_pointer.write(value);
 
@@ -1162,10 +1162,10 @@ impl CPU {
     }
 
     fn ld_a16_ptr_sp(&mut self) -> u32 {
-        let mut address = self.memory_bus.borrow().read_16bit(self.program_counter.read() as usize);
+        let mut address = self.memory_bus.borrow().read_16bit(self.program_counter.read());
         self.program_counter.increment(2);
         let value = self.stack_pointer.read();
-        self.memory_bus.borrow_mut().write_16bit(address as usize, value);
+        self.memory_bus.borrow_mut().write_16bit(address, value);
         20
     }
 
@@ -1173,7 +1173,7 @@ impl CPU {
                                    register_identifier: &RegisterIdentifier,
                                    bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         self.write_register(register_identifier, value);
 
         8
@@ -1186,7 +1186,7 @@ impl CPU {
     }
 
     fn jr_r8(&mut self) -> u32 {
-        let value = self.memory_bus.borrow().read_8bit_signed(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_8bit_signed(self.program_counter.read());
         self.program_counter.increment(1);
 
         let pc = self.program_counter.read();
@@ -1197,7 +1197,7 @@ impl CPU {
     fn ld_bi_register_ptr_register(&mut self,
                                    bi_register_identifier: &BiRegisterIdentifier,
                                    register_identifier: &RegisterIdentifier) -> u32 {
-        let address = self.read_bi_register(bi_register_identifier) as usize;
+        let address = self.read_bi_register(bi_register_identifier);
         let value = self.read_register(register_identifier);
 
         self.memory_bus.borrow_mut().write_8bit(address, value);
@@ -1205,7 +1205,7 @@ impl CPU {
     }
 
     fn jr_flag_r8(&mut self, flag: CPUFlag, jump_if_true: bool) -> u32 {
-        let value = self.memory_bus.borrow().read_8bit_signed(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_8bit_signed(self.program_counter.read());
         self.program_counter.increment(1);
 
         let pc = self.program_counter.read();
@@ -1251,10 +1251,10 @@ impl CPU {
     }
 
     fn ld_bi_register_ptr_d8(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
-        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read() as usize);
+        let value = self.memory_bus.borrow().read_8bit(self.program_counter.read());
         self.program_counter.increment(1);
         let address = self.read_bi_register(bi_register_identifier);
-        self.memory_bus.borrow_mut().write_8bit(address as usize, value);
+        self.memory_bus.borrow_mut().write_8bit(address, value);
         12
     }
 
@@ -1275,13 +1275,13 @@ impl CPU {
         self.stack_pointer.decrement(2);
         let sp = self.stack_pointer.read();
         let value = self.read_bi_register(bi_register_identifier);
-        self.memory_bus.borrow_mut().write_16bit(sp as usize, value);
+        self.memory_bus.borrow_mut().write_16bit(sp, value);
         16
     }
 
     fn pop_bi_register(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let sp = self.stack_pointer.read();
-        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        let value = self.memory_bus.borrow().read_16bit(sp);
         self.stack_pointer.increment(2);
         self.write_bi_register(bi_register_identifier, value);
         12
@@ -1289,7 +1289,7 @@ impl CPU {
 
     fn jp_a16(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        let address = self.memory_bus.borrow().read_16bit(pc);
         self.program_counter.write(address);
         12
     }
@@ -1315,7 +1315,7 @@ impl CPU {
 
     fn ret(&mut self) -> u32 {
         let sp = self.stack_pointer.read();
-        let value = self.memory_bus.borrow().read_16bit(sp as usize);
+        let value = self.memory_bus.borrow().read_16bit(sp);
         self.stack_pointer.increment(2);
         self.program_counter.write(value);
         8
@@ -1336,12 +1336,12 @@ impl CPU {
 
     fn call_a16(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        let address = self.memory_bus.borrow().read_16bit(pc);
         self.program_counter.increment(2);
 
         let sp = self.stack_pointer.read();
         let next_instruction_address = self.program_counter.read();
-        self.memory_bus.borrow_mut().write_16bit(sp as usize, next_instruction_address);
+        self.memory_bus.borrow_mut().write_16bit(sp, next_instruction_address);
         self.stack_pointer.decrement(2);
 
         self.program_counter.write(address);
@@ -1361,7 +1361,7 @@ impl CPU {
     fn rst(&mut self, address: u8) -> u32 {
         let pc = self.program_counter.read();
         let sp = self.stack_pointer.read();
-        self.memory_bus.borrow_mut().write_16bit(sp as usize, pc);
+        self.memory_bus.borrow_mut().write_16bit(sp, pc);
         self.stack_pointer.decrement(2);
 
         self.program_counter.write(0x0000 + address as u16);
@@ -1372,10 +1372,10 @@ impl CPU {
         let value = self.read_register(register_identifier);
 
         let pc = self.program_counter.read();
-        let add_to_address = self.memory_bus.borrow().read_8bit(pc as usize);
+        let add_to_address = self.memory_bus.borrow().read_8bit(pc) as u16;
         self.program_counter.increment(1);
 
-        let resulting_address = 0xFF00 + add_to_address as usize;
+        let resulting_address = 0xFF00 + add_to_address;
 
         if resulting_address == 0xFFFF {
             self.interrupt_enable_register.write(value);
@@ -1390,17 +1390,17 @@ impl CPU {
                                 first_register_identifier: &RegisterIdentifier,
                                 second_register_identifier: &RegisterIdentifier) -> u32 {
         let value = self.read_register(second_register_identifier);
-        let add_to_address = self.read_register(first_register_identifier);
+        let add_to_address = self.read_register(first_register_identifier) as u16;
 
-        self.memory_bus.borrow_mut().write_8bit(0xFF00 + add_to_address as usize, value);
+        self.memory_bus.borrow_mut().write_8bit(0xFF00 + add_to_address, value);
         8
     }
 
     fn ld_register_register_ptr(&mut self,
                                 first_register_identifier: &RegisterIdentifier,
                                 second_register_identifier: &RegisterIdentifier) -> u32 {
-        let add_to_address = self.read_register(second_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(0xFF00 + add_to_address as usize);
+        let add_to_address = self.read_register(second_register_identifier) as u16;
+        let value = self.memory_bus.borrow().read_8bit(0xFF00 + add_to_address);
         self.write_register(first_register_identifier, value);
         8
     }
@@ -1409,18 +1409,18 @@ impl CPU {
         let value = self.read_register(register_identifier);
 
         let pc = self.program_counter.read();
-        let address = self.memory_bus.borrow().read_16bit(pc as usize);
+        let address = self.memory_bus.borrow().read_16bit(pc);
         self.program_counter.increment(2);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, value);
+        self.memory_bus.borrow_mut().write_8bit(address, value);
         16
     }
 
     fn ldh_register_a8_ptr(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
         let pc = self.program_counter.read();
-        let address_to_add = self.memory_bus.borrow().read_8bit(pc as usize);
+        let address_to_add = self.memory_bus.borrow().read_8bit(pc) as u16;
         self.program_counter.increment(1);
-        let value = self.memory_bus.borrow().read_8bit(0xFF00 + address_to_add as usize);
+        let value = self.memory_bus.borrow().read_8bit(0xFF00 + address_to_add);
         self.write_register(register_identifier, value);
         16
     }
@@ -1433,8 +1433,8 @@ impl CPU {
 
     fn ld_register_a16_ptr(&mut self, register_identifier: &RegisterIdentifier) -> u32 {
         let pc = self.program_counter.read();
-        let address = self.memory_bus.borrow().read_16bit(pc as usize);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let address = self.memory_bus.borrow().read_16bit(pc);
+        let value = self.memory_bus.borrow().read_8bit(address);
         self.program_counter.increment(2);
         self.write_register(register_identifier, value);
         16
@@ -1546,10 +1546,10 @@ impl CPU {
 
     fn rlc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.rlc(value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1563,10 +1563,10 @@ impl CPU {
 
     fn rrc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.rrc(value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1580,10 +1580,10 @@ impl CPU {
 
     fn rl_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.rl(value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1597,10 +1597,10 @@ impl CPU {
 
     fn rr_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.rr(value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1622,10 +1622,10 @@ impl CPU {
 
     fn sla_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.sla(value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1639,9 +1639,9 @@ impl CPU {
 
     fn sra_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.sra(value);
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1655,9 +1655,9 @@ impl CPU {
 
     fn srl_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.srl(value);
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1671,9 +1671,9 @@ impl CPU {
 
     fn swap_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.swap(value);
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1685,7 +1685,7 @@ impl CPU {
 
     fn bit_bi_register_ptr(&mut self, bit: u8, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         self.bit(bit, value);
         16
     }
@@ -1700,10 +1700,10 @@ impl CPU {
 
     fn res_bi_register_ptr(&mut self, bit: u8, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.res(bit, value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1717,10 +1717,10 @@ impl CPU {
 
     fn set_bi_register_ptr(&mut self, bit: u8, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let value = self.memory_bus.borrow().read_8bit(address as usize);
+        let value = self.memory_bus.borrow().read_8bit(address);
         let result = self.set(bit, value);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, result);
+        self.memory_bus.borrow_mut().write_8bit(address, result);
         16
     }
 
@@ -1838,7 +1838,7 @@ impl CPU {
 
     fn inc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let lhs = self.memory_bus.borrow().read_8bit(address);
         let rhs = 1;
         let sum = lhs.wrapping_add(rhs);
 
@@ -1846,13 +1846,13 @@ impl CPU {
         self.set_flag(CPUFlag::H, (sum & 0x0F) < (lhs & 0x0F));
         self.set_flag(CPUFlag::N, false);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, sum);
+        self.memory_bus.borrow_mut().write_8bit(address, sum);
         12
     }
 
     fn dec_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let lhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let lhs = self.memory_bus.borrow().read_8bit(address);
         let rhs = 1;
         let difference = lhs.wrapping_sub(rhs);
 
@@ -1860,7 +1860,7 @@ impl CPU {
         self.set_flag(CPUFlag::H, (difference & 0x0F) <= (lhs & 0x0F));
         self.set_flag(CPUFlag::N, true);
 
-        self.memory_bus.borrow_mut().write_8bit(address as usize, difference);
+        self.memory_bus.borrow_mut().write_8bit(address, difference);
         12
     }
 
@@ -1924,14 +1924,14 @@ impl CPU {
 
     fn add_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.add(rhs);
         8
     }
 
     fn add_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.add(rhs);
         8
@@ -1945,7 +1945,7 @@ impl CPU {
 
     fn sub_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.sub(rhs);
         8
@@ -1953,7 +1953,7 @@ impl CPU {
 
     fn sub_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.sub(rhs);
         8
     }
@@ -1967,7 +1967,7 @@ impl CPU {
 
     fn adc_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let mut rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let mut rhs = self.memory_bus.borrow().read_8bit(pc);
         rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
         self.program_counter.increment(1);
         self.add(rhs);
@@ -1976,7 +1976,7 @@ impl CPU {
 
     fn adc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address);
         rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
         self.add(rhs);
         8
@@ -1992,7 +1992,7 @@ impl CPU {
 
     fn sbc_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let mut rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let mut rhs = self.memory_bus.borrow().read_8bit(pc);
         rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
         self.program_counter.increment(1);
         self.sub(rhs);
@@ -2001,7 +2001,7 @@ impl CPU {
 
     fn sbc_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let mut rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let mut rhs = self.memory_bus.borrow().read_8bit(address);
         rhs = rhs.wrapping_add(if self.get_flag(CPUFlag::C) {1} else {0});
         self.sub(rhs);
         8
@@ -2015,7 +2015,7 @@ impl CPU {
 
     fn and_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.and(rhs);
         8
@@ -2023,7 +2023,7 @@ impl CPU {
 
     fn and_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.and(rhs);
         8
     }
@@ -2036,7 +2036,7 @@ impl CPU {
 
     fn xor_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.xor(rhs);
         8
@@ -2044,7 +2044,7 @@ impl CPU {
 
     fn xor_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.xor(rhs);
         8
     }
@@ -2057,7 +2057,7 @@ impl CPU {
 
     fn or_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.or(rhs);
         8
@@ -2065,7 +2065,7 @@ impl CPU {
 
     fn or_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.or(rhs);
         8
     }
@@ -2078,7 +2078,7 @@ impl CPU {
 
     fn cp_d8(&mut self) -> u32 {
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(pc);
         self.program_counter.increment(1);
         self.cp(rhs);
         8
@@ -2086,7 +2086,7 @@ impl CPU {
 
     fn cp_bi_register_ptr(&mut self, bi_register_identifier: &BiRegisterIdentifier) -> u32 {
         let address = self.read_bi_register(bi_register_identifier);
-        let rhs = self.memory_bus.borrow().read_8bit(address as usize);
+        let rhs = self.memory_bus.borrow().read_8bit(address);
         self.cp(rhs);
         8
     }
@@ -2139,7 +2139,7 @@ impl CPU {
     fn add_sp_r8(&mut self) -> u32 {
         let lhs = self.stack_pointer.read();
         let pc = self.program_counter.read();
-        let rhs = self.memory_bus.borrow().read_8bit_signed(pc as usize);
+        let rhs = self.memory_bus.borrow().read_8bit_signed(pc);
         self.program_counter.increment(1);
 
         let sum = (lhs as u32).wrapping_add(rhs as u32);
@@ -2205,19 +2205,9 @@ impl CPU {
 mod test {
 
     use super::*;
-    use gb::memory::cartridge::*;
-    use gb::memory::ram::*;
-    use gb::memory::oam::*;
-    use gb::memory::high_ram::*;
-    use gb::memory::io::*;
 
     fn create_cpu() -> CPU {
-        let cartridge = Rc::new(RefCell::new(Cartridge::from_bytes([0; 0x8000])));
-        let ram = Rc::new(RefCell::new(Ram::new()));
-        let oam = Rc::new(RefCell::new(Oam::new()));
-        let high_ram = Rc::new(RefCell::new(HighRam::new()));
-        let io = Rc::new(RefCell::new(IO::new()));
-        let memory_bus = Rc::new(RefCell::new(MemoryBus::new(cartridge.clone(), ram.clone(), oam.clone(), high_ram.clone(), io.clone())));
+        let memory_bus = Rc::new(RefCell::new(MemoryBus::new()));
         let mut cpu = CPU::new(memory_bus.clone());
         cpu.initialize();
         cpu

@@ -35,7 +35,7 @@ pub trait ReadMemory {
     /// Returns:
     /// - The read byte
     ///
-    fn read_8bit(&self, address: usize) -> u8;
+    fn read_8bit(&self, address: u16) -> u8;
     ///
     /// Reads 8-bit signed data from the memory at the given address
     ///
@@ -45,7 +45,7 @@ pub trait ReadMemory {
     /// Returns:
     /// - The read byte
     ///
-    fn read_8bit_signed(&self, address: usize) -> i8;
+    fn read_8bit_signed(&self, address: u16) -> i8;
     ///
     /// Reads 16-bit unsigned data from the memory at the given address
     ///
@@ -55,7 +55,7 @@ pub trait ReadMemory {
     /// Returns:
     /// - The read bytes
     ///
-    fn read_16bit(&self, address: usize) -> u16;
+    fn read_16bit(&self, address: u16) -> u16;
 }
 
 ///
@@ -68,19 +68,59 @@ pub trait WriteMemory {
     /// Params:
     /// - address: usize = The address to write at
     ///
-    fn write_8bit(&mut self, address: usize, value: u8);
+    fn write_8bit(&mut self, address: u16, value: u8);
     ///
     /// Writes 8-bit signed data to the memory at the given address
     ///
     /// Params:
     /// - address: usize = The address to write at
     ///
-    fn write_8bit_signed(&mut self, address: usize, value: i8);
+    fn write_8bit_signed(&mut self, address: u16, value: i8);
     ///
     /// Writes 16-bit unsigned data to the memory at the given address
     ///
     /// Params:
     /// - address: usize = The address to write at
     ///
-    fn write_16bit(&mut self, address: usize, value: u16);
+    fn write_16bit(&mut self, address: u16, value: u16);
+}
+
+
+///
+/// Implementation of ReadMemory for u8 arrays
+///
+impl ReadMemory for [u8] {
+    fn read_8bit(&self, address: u16) -> u8 {
+        self[address as usize]
+    }
+
+
+    fn read_8bit_signed(&self, address: u16) -> i8 {
+        self.read_8bit(address) as i8
+    }
+
+
+    fn read_16bit(&self, address: u16) -> u16 {
+        self[address as usize] as u16 | ((self[(address+1) as usize] as u16) << 8)
+    }
+}
+
+///
+/// Implementation of WriteMemory for u8 arrays
+///
+impl WriteMemory for [u8] {
+    fn write_8bit(&mut self, address: u16, value: u8) {
+        self[address as usize] = value;
+    }
+
+
+    fn write_8bit_signed(&mut self, address: u16, value: i8) {
+        self.write_8bit(address, value as u8);
+    }
+
+
+    fn write_16bit(&mut self, address: u16, value: u16) {
+        self.write_8bit(address, ((value << 8) >> 8) as u8);
+        self.write_8bit(address + 1, (value >> 8) as u8);
+    }
 }
