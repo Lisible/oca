@@ -22,7 +22,5 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-mod cpu;
-mod memory;
-mod debugger;
+pub mod debugger;
+mod debugger_command;

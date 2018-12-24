@@ -22,7 +22,24 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-mod cpu;
-mod memory;
-mod debugger;
+pub struct DebuggerCommand {
+    identifier: &'static str,
+    arguments: Option<Vec<String>>,
+}
+
+impl DebuggerCommand {
+    pub fn new(identifier: &'static str, arguments: Option<Vec<String>>) -> DebuggerCommand {
+        DebuggerCommand {
+            identifier,
+            arguments
+        }
+    }
+
+    pub fn get_identifier(&self) -> &'static str {
+        self.identifier
+    }
+
+    pub fn get_arguments(&self) -> Option<Vec<String>> {
+        self.arguments.clone()
+    }
+}
