@@ -58,8 +58,6 @@ mod tests {
     use gb::debugger::debugger::*;
     use super::*;
 
-    static mut I : i32 = 5;
-
     #[test]
     fn debugger_register_handler() {
         let mut debugger = Debugger::new();
@@ -75,7 +73,7 @@ mod tests {
     fn debugger_run_command() {
         let mut debugger = Debugger::new();
 
-
+        static mut I : i32 = 5;
 
         debugger.register_command_handler("add1", |arguments| {
             unsafe {
@@ -87,6 +85,25 @@ mod tests {
 
         unsafe {
             assert_eq!(I, 6);
+        }
+    }
+
+    #[test]
+    fn debugger_run_command_from_string() {
+        let mut debugger = Debugger::new();
+
+        static mut I : i32 = 10;
+
+        debugger.register_command_handler("add1", |arguments| {
+            unsafe {
+                I += 2;
+            }
+        });
+
+        debugger.run_command(DebuggerCommand::from_string("add1"));
+
+        unsafe {
+            assert_eq!(I, 12);
         }
     }
 }
