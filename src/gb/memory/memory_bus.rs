@@ -70,7 +70,7 @@ impl ReadMemory for MemoryBus {
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_8bit(address - 0xFF00)
         } else if (address == 0xFFFF) {
-            self.io.read_8bit(0xFF4C)
+            self.io.read_8bit(0x004C)
         }  else {
             panic!("Unmapped memory access: {:X}", address)
         }
@@ -92,7 +92,7 @@ impl ReadMemory for MemoryBus {
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_16bit(address - 0xFF00)
         } else if (address == 0xFFFF) {
-            self.io.read_16bit(0xFF4C)
+            self.io.read_16bit(0x004C)
         } else {
             panic!("Unmapped memory access")
         }
@@ -114,7 +114,7 @@ impl WriteMemory for MemoryBus {
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit(address - 0xFF00, value);
         } else if (address == 0xFFFF) {
-            self.io.write_8bit(0xFF4C, value)
+            self.io.write_8bit(0x004C, value)
         }  else {
             panic!("Unmapped memory access: 0x{:X}", address)
         }
