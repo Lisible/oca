@@ -57,6 +57,7 @@ impl Debugger
             "breakpoint" => self.command_breakpoint(arguments, emulator),
             "run" => self.command_run(emulator),
             "print_cpu_state" => self.command_print_cpu_state(emulator),
+            "print_io_register" => self.command_print_io_register(arguments, emulator),
             _ => return Err(Error::UnknownCommand)
         }
 
@@ -78,7 +79,9 @@ impl Debugger
         };
 
         emulator.step(step_count);
-        println!("PC: 0x{:X}", emulator.dump_cpu_state().program_counter);
+
+        let cpu_state = emulator.dump_cpu_state();
+        println!("PC: 0x{:X}  (Opcode: 0x{:X} = {})", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode));
     }
 
     fn command_breakpoint(&mut self, arguments: Vec<&str>, emulator: &mut Emulator) {
@@ -123,6 +126,15 @@ impl Debugger
         println!("PC: 0x{:X}  (Opcode: 0x{:X} = {})", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode));
         println!("SP: 0x{:X}", cpu_state.stack_pointer);
         println!();
+    }
+
+    fn command_print_io_register(&self, arguments: Vec<&str>, emulator: &Emulator) {
+        assert!(arguments.len() == 1);
+        let arg = arguments.get(0).unwrap();
+        let arg = arg.trim_left_matches("0x");
+        let address = u16::from_str_radix(arg, 16).unwrap();
+        let data = emulator.dump_io_register(address);
+        println!("0x{:X} = 0x{:X}", address, data);
     }
 
 

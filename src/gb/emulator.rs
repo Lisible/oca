@@ -98,4 +98,8 @@ impl Emulator {
     pub fn dump_cpu_state(&self) -> CPUState {
         self.cpu.dump_state()
     }
+
+    pub fn dump_io_register(&self, address: u16) ->  u8 {
+        self.memory_bus.borrow().dump_io_register(address)
+    }
 }

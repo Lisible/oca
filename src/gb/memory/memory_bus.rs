@@ -32,7 +32,7 @@ pub struct MemoryBus {
     ram: [u8; 0x2000],
     high_ram: [u8; 0x80],
     oam: [u8; 0xA0],
-    io: [u8; 0x4C]
+    io: [u8; 0x4D]
 }
 
 impl MemoryBus {
@@ -42,12 +42,16 @@ impl MemoryBus {
             ram: [0; 0x2000],
             high_ram: [0; 0x80],
             oam:  [0; 0xA0],
-            io:  [0; 0x4C]
+            io:  [0; 0x4D]
         }
     }
 
     pub fn load_rom(&mut self, rom_data: [u8; 0x8000]) {
         self.cartridge.copy_from_slice(&rom_data[..0x8000]);
+    }
+
+    pub fn dump_io_register(&self, address: u16) -> u8 {
+        self.read_8bit(address)
     }
 }
 
@@ -65,7 +69,9 @@ impl ReadMemory for MemoryBus {
             self.high_ram.read_8bit(address - 0xFF80)
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_8bit(address - 0xFF00)
-        } else {
+        } else if (address == 0xFFFF) {
+            self.io.read_8bit(0xFF4C)
+        }  else {
             panic!("Unmapped memory access: {:X}", address)
         }
     }
@@ -85,6 +91,8 @@ impl ReadMemory for MemoryBus {
             self.high_ram.read_16bit(address - 0xFF80)
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_16bit(address - 0xFF00)
+        } else if (address == 0xFFFF) {
+            self.io.read_16bit(0xFF4C)
         } else {
             panic!("Unmapped memory access")
         }
@@ -105,7 +113,9 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_8bit(address - 0xFF80, value);
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit(address - 0xFF00, value);
-        } else {
+        } else if (address == 0xFFFF) {
+            self.io.write_8bit(0xFF4C, value)
+        }  else {
             panic!("Unmapped memory access: 0x{:X}", address)
         }
     }
@@ -121,7 +131,9 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_8bit_signed(address - 0xFF80, value);
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit_signed(address - 0xFF00, value);
-        } else {
+        } else if (address == 0xFFFF) {
+            self.io.write_8bit_signed(0xFF4C, value)
+        }  else {
             panic!("Unmapped memory access")
         }
     }
@@ -137,7 +149,9 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_16bit(address - 0xFF80, value);
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_16bit(address - 0xFF00, value);
-        } else {
+        } else if (address == 0xFFFF) {
+            self.io.write_16bit(0xFF4C, value)
+        }  else {
             panic!("Unmapped memory access")
         }
     }

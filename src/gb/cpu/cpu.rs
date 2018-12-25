@@ -72,10 +72,6 @@ pub struct CPU {
     memory_bus: Rc<RefCell<MemoryBus>>,
 
     ///
-    /// The interrupt enable register
-    ///
-    interrupt_enable_register: Register8Bit,
-    ///
     /// The interrupt master enable flag
     ///
     interrupt_master_enable: bool,
@@ -126,7 +122,6 @@ impl CPU {
             stack_pointer: Register16Bit::new(),
             program_counter: Register16Bit::new(),
             memory_bus,
-            interrupt_enable_register: Register8Bit::new(),
             interrupt_master_enable: false,
             interrupt_disable_delay: 0,
             interrupt_enable_delay: 0,
@@ -247,7 +242,6 @@ impl CPU {
         self.memory_bus.borrow_mut().write_8bit(0xFF49, 0xFF);
         self.memory_bus.borrow_mut().write_8bit(0xFF4A, 0x00);
         self.memory_bus.borrow_mut().write_8bit(0xFF4B, 0x00);
-        self.interrupt_enable_register.write(0x00);
     }
 
     ///
@@ -1379,12 +1373,7 @@ impl CPU {
         self.program_counter.increment(1);
 
         let resulting_address = 0xFF00 + add_to_address;
-
-        if resulting_address == 0xFFFF {
-            self.interrupt_enable_register.write(value);
-        } else {
-            self.memory_bus.borrow_mut().write_8bit(resulting_address, value);
-        }
+        self.memory_bus.borrow_mut().write_8bit(resulting_address, value);
 
         12
     }
