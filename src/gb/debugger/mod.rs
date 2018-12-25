@@ -23,4 +23,4 @@
 */
 
 pub mod debugger;
-mod debugger_command;
+pub mod error;

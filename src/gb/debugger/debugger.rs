@@ -22,88 +22,103 @@
 * SOFTWARE.
 */
 
-use std::collections::HashMap;
-use std::error::Error;
+use gb::emulator::Emulator;
+use gb::debugger::error::Error;
 
-use gb::debugger::debugger_command::DebuggerCommand;
 
-pub struct Debugger<F>
-    where F : FnMut(Option<Vec<String>>)
-{
-    command_handlers: HashMap<&'static str, F>,
+use std::collections::HashSet;
+use std::u16;
+
+pub struct Debugger {
+    breakpoints: HashSet<u16>
 }
 
-impl<F> Debugger<F>
-    where F : FnMut(Option<Vec<String>>)
+impl Debugger
 {
-    pub fn new() -> Debugger<F> {
+    pub fn new() -> Debugger {
         Debugger {
-            command_handlers: HashMap::new()
+            breakpoints: HashSet::new(),
         }
     }
 
-    fn register_command_handler(&mut self, command_identifier: &'static str, command_handler: F) {
-        self.command_handlers.insert(command_identifier, command_handler);
+    pub fn run_command(&mut self, command: String, emulator: &mut Emulator) -> Result<(), Error> {
+        let split_command: Vec<&str> = command.split_whitespace().collect();
+        let identifier: &str = split_command.get(0).unwrap();
+        let arguments: Vec<&str> = split_command[1..split_command.len()].to_vec();
+
+        match identifier {
+            "print" => self.command_print(arguments),
+            "step" => self.command_step(arguments, emulator),
+            "breakpoint" => self.command_breakpoint(arguments, emulator),
+            "run" => self.command_run(emulator),
+            "print_cpu_state" => self.command_print_cpu_state(emulator),
+            _ => return Err(Error::UnknownCommand)
+        }
+
+        Ok(())
     }
 
-    fn run_command(&mut self, command: DebuggerCommand) {
-        let identifier = command.get_identifier();
-        let arguments = command.get_arguments();
-        self.command_handlers.get_mut(identifier).unwrap()(arguments);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use gb::debugger::debugger::*;
-    use super::*;
-
-    #[test]
-    fn debugger_register_handler() {
-        let mut debugger = Debugger::new();
-
-        debugger.register_command_handler("print", |arguments| {
-            println!("{}", arguments.unwrap().get(0).unwrap());
-        });
-
-        assert_eq!(debugger.command_handlers.len(), 1);
+    fn command_print(&self, arguments: Vec<&str>) {
+        let output = arguments.join(" ");
+        println!("{}", output);
     }
 
-    #[test]
-    fn debugger_run_command() {
-        let mut debugger = Debugger::new();
+    fn command_step(&self, arguments: Vec<&str>, emulator: &mut Emulator) {
+        assert!(arguments.len() <= 1);
 
-        static mut I : i32 = 5;
+        let step_count = if arguments.len() == 0 {
+            1
+        } else {
+            arguments[0].parse().unwrap()
+        };
 
-        debugger.register_command_handler("add1", |arguments| {
-            unsafe {
-                I += 1;
+        emulator.step(step_count);
+        println!("PC: 0x{:X}", emulator.dump_cpu_state().program_counter);
+    }
+
+    fn command_breakpoint(&mut self, arguments: Vec<&str>, emulator: &mut Emulator) {
+        assert!(arguments.len() == 1);
+        let line = arguments.get(0).unwrap();
+        let line = line.trim_left_matches("0x");
+        let line_number = u16::from_str_radix(line, 16).unwrap();
+
+        if !self.breakpoints.contains(&line_number) {
+            println!("Breakpoint set on line 0x{:X}", &line_number);
+            self.breakpoints.insert(line_number);
+        } else {
+            println!("Breakpoint unset on line 0x{:X}", &line_number);
+            self.breakpoints.remove(&line_number);
+        }
+    }
+
+    fn command_run(&mut self, emulator: &mut Emulator) {
+        loop {
+            emulator.step(1);
+
+            let cpu_state = emulator.dump_cpu_state();
+            if self.breakpoints.contains(&cpu_state.program_counter) {
+                println!("Breakpoint encounted on line 0x{:X}", cpu_state.program_counter);
+                break;
             }
-        });
-
-        debugger.run_command(DebuggerCommand::new("add1", None));
-
-        unsafe {
-            assert_eq!(I, 6);
         }
     }
 
-    #[test]
-    fn debugger_run_command_from_string() {
-        let mut debugger = Debugger::new();
-
-        static mut I : i32 = 10;
-
-        debugger.register_command_handler("add1", |arguments| {
-            unsafe {
-                I += 2;
-            }
-        });
-
-        debugger.run_command(DebuggerCommand::from_string("add1"));
-
-        unsafe {
-            assert_eq!(I, 12);
-        }
+    fn command_print_cpu_state(&self, emulator: &Emulator) {
+        let cpu_state = emulator.dump_cpu_state();
+        println!();
+        println!("CPU State:");
+        println!("A: 0x{:X}", cpu_state.a);
+        println!("B: 0x{:X}", cpu_state.b);
+        println!("C: 0x{:X}", cpu_state.c);
+        println!("D: 0x{:X}", cpu_state.d);
+        println!("E: 0x{:X}", cpu_state.e);
+        println!("F: 0x{:X}", cpu_state.f);
+        println!("H: 0x{:X}", cpu_state.h);
+        println!("L: 0x{:X}", cpu_state.l);
+        println!("PC: 0x{:X}", cpu_state.program_counter);
+        println!("SP: 0x{:X}", cpu_state.stack_pointer);
+        println!();
     }
+
+
 }

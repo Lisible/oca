@@ -138,6 +138,21 @@ impl CPU {
         cpu
     }
 
+    pub fn dump_state(&self) -> CPUState {
+        CPUState {
+            a: self.read_register(&RegisterIdentifier::A),
+            b: self.read_register(&RegisterIdentifier::B),
+            c: self.read_register(&RegisterIdentifier::C),
+            d: self.read_register(&RegisterIdentifier::D),
+            e: self.read_register(&RegisterIdentifier::E),
+            f: self.read_register(&RegisterIdentifier::F),
+            h: self.read_register(&RegisterIdentifier::H),
+            l: self.read_register(&RegisterIdentifier::L),
+            program_counter: self.program_counter.read(),
+            stack_pointer: self.stack_pointer.read(),
+        }
+    }
+
     ///
     /// Params:
     /// - flag: CPUFlag = The identifier of the desired flag
@@ -236,25 +251,9 @@ impl CPU {
     ///
     pub fn step(&mut self) {
         let mut cycles = 0;
-
         let pc = self.program_counter.read();
         let opcode = self.memory_bus.borrow().read_8bit(pc);
-        println!("opcode: 0x{:X}, pc: 0x{:X}", opcode, pc);
-        println!("A: 0x{:X}, B: 0x{:X}, C: 0x{:X}, D: 0x{:X}, E: 0x{:X}, F: 0x{:X}, H: 0x{:X}, L: 0x{:X}",
-                 self.read_register(&RegisterIdentifier::A),
-                 self.read_register(&RegisterIdentifier::B),
-                 self.read_register(&RegisterIdentifier::C),
-                 self.read_register(&RegisterIdentifier::D),
-                 self.read_register(&RegisterIdentifier::E),
-                 self.read_register(&RegisterIdentifier::F),
-                 self.read_register(&RegisterIdentifier::H),
-                 self.read_register(&RegisterIdentifier::L));
-        println!("Z: {}", self.get_flag(CPUFlag::Z));
-        println!("N: {}", self.get_flag(CPUFlag::N));
-        println!("H: {}", self.get_flag(CPUFlag::H));
-        println!("C: {}", self.get_flag(CPUFlag::C));
 
-        println!();
         self.program_counter.increment(1);
         match opcode {
             // NOP
@@ -2199,6 +2198,19 @@ impl CPU {
     fn read_bi_register(&self, register_identifier: &BiRegisterIdentifier) -> u16 {
         self.bi_registers.get(&register_identifier).unwrap().read()
     }
+}
+
+pub struct CPUState {
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub f: u8,
+    pub h: u8,
+    pub l: u8,
+    pub stack_pointer: u16,
+    pub program_counter: u16,
 }
 
 #[cfg(test)]

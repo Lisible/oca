@@ -22,11 +22,14 @@
 * SOFTWARE.
 */
 
-use gb::cpu::cpu::CPU;
+use gb::cpu::cpu::*;
 use gb::memory::memory_bus::MemoryBus;
+use gb::debugger::debugger::Debugger;
+use gb::debugger::error::Error;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::io;
 
 
 pub struct Emulator {
@@ -50,5 +53,31 @@ impl Emulator {
         loop {
             self.cpu.step();
         }
+    }
+
+    pub fn start_debug(&mut self) {
+        self.cpu.initialize();
+        let mut debugger = Debugger::new();
+
+        loop {
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)
+                .expect("Failed to read line");
+
+             if let Err(Error::UnknownCommand) = debugger.run_command(input, self) {
+                 println!("Unknown command")
+             }
+            println!();
+        }
+    }
+
+    pub fn step(&mut self, step_count: i32) {
+        for i in 0..step_count {
+            self.cpu.step();
+        }
+    }
+
+    pub fn dump_cpu_state(&self) -> CPUState {
+        self.cpu.dump_state()
     }
 }

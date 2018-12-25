@@ -22,37 +22,6 @@
 * SOFTWARE.
 */
 
-pub struct DebuggerCommand {
-    identifier: &'static str,
-    arguments: Option<Vec<String>>,
-}
-
-impl DebuggerCommand {
-    pub fn new(identifier: &'static str, arguments: Option<Vec<String>>) -> DebuggerCommand {
-        DebuggerCommand {
-            identifier,
-            arguments
-        }
-    }
-
-    pub fn from_string(command: &'static str) -> DebuggerCommand {
-        let split_command : Vec<&str> = command.split(" ").collect();
-        let identifier = split_command.get(0).unwrap();
-
-        let arguments = if split_command.len() == 1 {
-            None
-        } else {
-            Some(split_command[1..].iter().map(|&s| String::from(s)).collect())
-        };
-
-        DebuggerCommand::new(identifier, arguments)
-    }
-
-    pub fn get_identifier(&self) -> &'static str {
-        self.identifier
-    }
-
-    pub fn get_arguments(&self) -> Option<Vec<String>> {
-        self.arguments.clone()
-    }
+pub enum Error {
+    UnknownCommand,
 }
