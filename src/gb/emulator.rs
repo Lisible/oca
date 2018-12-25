@@ -31,6 +31,9 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::io;
 
+use std::fs::File;
+use std::io::prelude::*;
+
 
 pub struct Emulator {
     cpu: CPU,
@@ -48,15 +51,15 @@ impl Emulator {
         }
     }
 
-    pub fn start(&mut self) {
-        self.cpu.initialize();
+    pub fn start(&mut self, rom_file: String) {
+        self.initialize(&rom_file);
         loop {
             self.cpu.step();
         }
     }
 
-    pub fn start_debug(&mut self) {
-        self.cpu.initialize();
+    pub fn start_debug(&mut self, rom_file: String) {
+        self.initialize(&rom_file);
         let mut debugger = Debugger::new();
 
         loop {
@@ -69,6 +72,20 @@ impl Emulator {
              }
             println!();
         }
+    }
+
+    fn initialize(&mut self, rom_file: &str) {
+        let rom_data = self.load_rom_file(rom_file);
+        self.memory_bus.borrow_mut().load_rom(rom_data);
+        self.cpu.initialize();
+    }
+
+    fn load_rom_file(&self, rom_file: &str) -> Vec<u8> {
+        let mut file = File::open(rom_file).unwrap();
+        let mut buffer : Vec<u8> = vec![0; 0x8000];
+
+        file.read_to_end(&mut buffer);
+        buffer
     }
 
     pub fn step(&mut self, step_count: i32) {

@@ -24,8 +24,13 @@
 
 extern crate oca;
 
+use std::env;
+
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    assert_eq!(args.len(), 2);
+
     let mut console = oca::gb::emulator::Emulator::new();
 
-    console.start_debug();
+    console.start_debug(args.get(1).unwrap().to_string());
 }

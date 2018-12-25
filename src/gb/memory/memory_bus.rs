@@ -45,6 +45,10 @@ impl MemoryBus {
             io:  [0; 0x4C]
         }
     }
+
+    pub fn load_rom(&mut self, rom_data: Vec<u8>) {
+        self.cartridge.copy_from_slice(&rom_data[0..0x8000]);
+    }
 }
 
 impl ReadMemory for MemoryBus {

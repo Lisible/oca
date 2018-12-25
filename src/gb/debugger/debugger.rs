@@ -42,6 +42,10 @@ impl Debugger
     }
 
     pub fn run_command(&mut self, command: String, emulator: &mut Emulator) -> Result<(), Error> {
+        if command.len() <= 1 {
+            return Ok(())
+        }
+
         let split_command: Vec<&str> = command.split_whitespace().collect();
         let identifier: &str = split_command.get(0).unwrap();
         let arguments: Vec<&str> = split_command[1..split_command.len()].to_vec();
