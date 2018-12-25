@@ -24,3 +24,4 @@
 
 pub mod debugger;
 pub mod error;
+mod opcode_disassembly;

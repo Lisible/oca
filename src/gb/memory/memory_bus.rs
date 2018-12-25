@@ -46,8 +46,8 @@ impl MemoryBus {
         }
     }
 
-    pub fn load_rom(&mut self, rom_data: Vec<u8>) {
-        self.cartridge.copy_from_slice(&rom_data[0..0x8000]);
+    pub fn load_rom(&mut self, rom_data: [u8; 0x8000]) {
+        self.cartridge.copy_from_slice(&rom_data[..0x8000]);
     }
 }
 

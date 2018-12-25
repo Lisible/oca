@@ -31,8 +31,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::io;
 
-use std::fs::File;
-use std::io::prelude::*;
 
 
 pub struct Emulator {
@@ -80,11 +78,14 @@ impl Emulator {
         self.cpu.initialize();
     }
 
-    fn load_rom_file(&self, rom_file: &str) -> Vec<u8> {
-        let mut file = File::open(rom_file).unwrap();
-        let mut buffer : Vec<u8> = vec![0; 0x8000];
+    fn load_rom_file(&self, rom_file: &str) -> [u8; 0x8000] {
+        use std::fs;
 
-        file.read_to_end(&mut buffer);
+        let contents = fs::read(rom_file).unwrap();
+        let mut buffer = [0; 0x8000];
+        let contents = &contents[..buffer.len()];
+        buffer.copy_from_slice(contents);
+
         buffer
     }
 

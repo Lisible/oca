@@ -139,6 +139,9 @@ impl CPU {
     }
 
     pub fn dump_state(&self) -> CPUState {
+        let pc = self.program_counter.read();
+        let opcode = self.memory_bus.borrow().read_8bit(pc);
+
         CPUState {
             a: self.read_register(&RegisterIdentifier::A),
             b: self.read_register(&RegisterIdentifier::B),
@@ -148,8 +151,9 @@ impl CPU {
             f: self.read_register(&RegisterIdentifier::F),
             h: self.read_register(&RegisterIdentifier::H),
             l: self.read_register(&RegisterIdentifier::L),
-            program_counter: self.program_counter.read(),
             stack_pointer: self.stack_pointer.read(),
+            program_counter: pc,
+            opcode,
         }
     }
 
@@ -2211,6 +2215,7 @@ pub struct CPUState {
     pub l: u8,
     pub stack_pointer: u16,
     pub program_counter: u16,
+    pub opcode: u8
 }
 
 #[cfg(test)]

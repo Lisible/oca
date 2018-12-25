@@ -24,6 +24,7 @@
 
 use gb::emulator::Emulator;
 use gb::debugger::error::Error;
+use gb::debugger::opcode_disassembly;
 
 
 use std::collections::HashSet;
@@ -119,7 +120,7 @@ impl Debugger
         println!("F: 0x{:X}", cpu_state.f);
         println!("H: 0x{:X}", cpu_state.h);
         println!("L: 0x{:X}", cpu_state.l);
-        println!("PC: 0x{:X}", cpu_state.program_counter);
+        println!("PC: 0x{:X}  (Opcode: 0x{:X} = {})", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode));
         println!("SP: 0x{:X}", cpu_state.stack_pointer);
         println!();
     }
