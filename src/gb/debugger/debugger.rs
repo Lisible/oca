@@ -104,6 +104,7 @@ impl Debugger
             emulator.step(1);
 
             let cpu_state = emulator.dump_cpu_state();
+            println!("PC = 0x{:X}", cpu_state.program_counter);
             if self.breakpoints.contains(&cpu_state.program_counter) {
                 println!("Breakpoint encounted on line 0x{:X}", cpu_state.program_counter);
                 break;

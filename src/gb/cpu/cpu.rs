@@ -901,13 +901,13 @@ impl CPU {
             },
             Operand8Bit::IndirectRegisterIO(identifier) => {
                 let offset = self.read_register(identifier);
-                let resulting_address = 0xFF00 + offset as u16;
+                let resulting_address = 0xFF00u16.wrapping_add(offset as u16);
                 self.memory_bus.borrow_mut().write_8bit(resulting_address, value)
             },
             Operand8Bit::DirectIOAddress => {
                 let pc = self.program_counter.read();
-                let offset = self.memory_bus.borrow().read_8bit_signed(pc);
-                let resulting_address = 0xFF00 + offset as u16;
+                let offset = self.memory_bus.borrow().read_8bit(pc);
+                let resulting_address = 0xFF00u16.wrapping_add(offset as u16);
                 self.program_counter.increment(1);
                 self.memory_bus.borrow_mut().write_8bit(resulting_address, value);
             }
