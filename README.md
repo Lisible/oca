@@ -11,3 +11,5 @@ I'm writing it for learning purpose mainly
 - Rendering
 - Timing
 - Inputs
+
+Based on the work of https://github.com/CTurt/Cinoop
