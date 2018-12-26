@@ -90,7 +90,7 @@ impl Emulator {
     }
 
     pub fn step(&mut self, step_count: i32) {
-        for i in 0..step_count {
+        for _ in 0..step_count {
             self.cpu.step();
         }
     }

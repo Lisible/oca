@@ -69,7 +69,7 @@ impl ReadMemory for MemoryBus {
             self.high_ram.read_8bit(address - 0xFF80)
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_8bit(address - 0xFF00)
-        } else if (address == 0xFFFF) {
+        } else if address == 0xFFFF {
             self.io.read_8bit(0x004C)
         }  else {
             panic!("Unmapped memory access: {:X}", address)
@@ -91,7 +91,7 @@ impl ReadMemory for MemoryBus {
             self.high_ram.read_16bit(address - 0xFF80)
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.read_16bit(address - 0xFF00)
-        } else if (address == 0xFFFF) {
+        } else if address == 0xFFFF {
             self.io.read_16bit(0x004C)
         } else {
             panic!("Unmapped memory access")
@@ -113,7 +113,7 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_8bit(address - 0xFF80, value);
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit(address - 0xFF00, value);
-        } else if (address == 0xFFFF) {
+        } else if address == 0xFFFF {
             self.io.write_8bit(0x004C, value)
         }  else {
             panic!("Unmapped memory access: 0x{:X}", address)
@@ -131,7 +131,7 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_8bit_signed(address - 0xFF80, value);
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit_signed(address - 0xFF00, value);
-        } else if (address == 0xFFFF) {
+        } else if address == 0xFFFF {
             self.io.write_8bit_signed(0xFF4C, value)
         }  else {
             panic!("Unmapped memory access")
@@ -149,7 +149,7 @@ impl WriteMemory for MemoryBus {
             self.high_ram.write_16bit(address - 0xFF80, value);
         }  else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_16bit(address - 0xFF00, value);
-        } else if (address == 0xFFFF) {
+        } else if address == 0xFFFF {
             self.io.write_16bit(0xFF4C, value)
         }  else {
             panic!("Unmapped memory access")

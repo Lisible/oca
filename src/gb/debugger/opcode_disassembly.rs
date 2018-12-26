@@ -233,7 +233,7 @@ pub fn disassemble(opcode: u8) -> &'static str {
         0xCE => "ADC A,d8",
         0xCF => "RST 08H",
         0xD0 => "RET NC",
-        0xC1 => "POP DE",
+        0xD1 => "POP DE",
         0xD2 => "JP NC,a16",
         0xD4 => "CALL NC,a16",
         0xD5 => "PUSH DE",

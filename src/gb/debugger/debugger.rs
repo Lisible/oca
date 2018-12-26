@@ -54,7 +54,7 @@ impl Debugger
         match identifier {
             "print" => self.command_print(arguments),
             "step" => self.command_step(arguments, emulator),
-            "breakpoint" => self.command_breakpoint(arguments, emulator),
+            "breakpoint" => self.command_breakpoint(arguments),
             "run" => self.command_run(emulator),
             "print_cpu_state" => self.command_print_cpu_state(emulator),
             "print_io_register" => self.command_print_io_register(arguments, emulator),
@@ -84,7 +84,7 @@ impl Debugger
         println!("PC: 0x{:X}  (Opcode: 0x{:X} = {})", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode));
     }
 
-    fn command_breakpoint(&mut self, arguments: Vec<&str>, emulator: &mut Emulator) {
+    fn command_breakpoint(&mut self, arguments: Vec<&str>) {
         assert!(arguments.len() == 1);
         let line = arguments.get(0).unwrap();
         let line = line.trim_left_matches("0x");
