@@ -1,10 +1,15 @@
 [![Build Status](https://travis-ci.com/Lisible/oca.svg?branch=master)](https://travis-ci.com/Lisible/oca)
 
 # oca
-GameBoy emulator written in Rust.
+GameBoy emulator written in Rust.  
+I'm writing it for learning purpose mainly
 
+## Done
+- Implement CPU Instructions
+- Implement basic debugging features
+## To do
+- Rendering
+- Timing
+- Inputs
 
-This is my first emulator project, 
-
-I intend to write it applying TDD as much as possible.
-
+Based on the work of https://github.com/CTurt/Cinoop
