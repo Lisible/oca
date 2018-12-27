@@ -26,15 +26,18 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 use gb::memory::memory_bus::MemoryBus;
+use gb::display::display::Display;
 
 pub struct GPU {
     memory_bus: Rc<RefCell<MemoryBus>>,
+    display: Box<Display>
 }
 
 impl GPU {
-    pub fn new(memory_bus: Rc<RefCell<MemoryBus>>) -> GPU {
+    pub fn new(memory_bus: Rc<RefCell<MemoryBus>>, display: Box<Display>) -> GPU {
         GPU {
-            memory_bus
+            memory_bus,
+            display
         }
     }
 }

@@ -86,7 +86,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
 
-    let mut console = oca::gb::emulator::Emulator::new();
+    let mut console = oca::gb::emulator::Emulator::new(Box::new(display));
     console.start(args.get(1).unwrap().to_string());
 
     'main_loop: loop {

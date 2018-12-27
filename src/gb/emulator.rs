@@ -27,6 +27,8 @@ use gb::gpu::gpu::*;
 
 use gb::event::event::Event;
 use gb::memory::memory_bus::MemoryBus;
+use gb::display::display::Display;
+
 use gb::debugger::debugger::Debugger;
 use gb::debugger::error::Error;
 
@@ -43,10 +45,10 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new() -> Emulator {
+    pub fn new(display: Box<Display>) -> Emulator {
         let memory_bus = Rc::new(RefCell::new(MemoryBus::new()));
         let cpu = CPU::new(memory_bus.clone());
-        let gpu = GPU::new(memory_bus.clone());
+        let gpu = GPU::new(memory_bus.clone(), display);
 
         Emulator {
             cpu,
