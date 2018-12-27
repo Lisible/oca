@@ -13,3 +13,4 @@ I'm writing it for learning purpose mainly
 - Inputs
 
 Based on the work of https://github.com/CTurt/Cinoop
+I also thank Cronokirby https://github.com/cronokirby for his advices 
