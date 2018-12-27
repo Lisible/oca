@@ -23,6 +23,9 @@
 */
 
 use gb::cpu::cpu::*;
+use gb::gpu::gpu::*;
+
+use gb::event::event::Event;
 use gb::memory::memory_bus::MemoryBus;
 use gb::debugger::debugger::Debugger;
 use gb::debugger::error::Error;
@@ -35,6 +38,7 @@ use std::io;
 
 pub struct Emulator {
     cpu: CPU,
+    gpu: GPU,
     memory_bus: Rc<RefCell<MemoryBus>>
 }
 
@@ -42,18 +46,25 @@ impl Emulator {
     pub fn new() -> Emulator {
         let memory_bus = Rc::new(RefCell::new(MemoryBus::new()));
         let cpu = CPU::new(memory_bus.clone());
+        let gpu = GPU::new(memory_bus.clone());
 
         Emulator {
             cpu,
+            gpu,
             memory_bus,
         }
     }
 
     pub fn start(&mut self, rom_file: String) {
         self.initialize(&rom_file);
-        loop {
-            self.cpu.step();
-        }
+    }
+
+    pub fn update(&mut self) {
+        self.cpu.step();
+    }
+
+    pub fn handle_event(&mut self, event: Event) {
+        println!("Emulator received event: {}", event);
     }
 
     pub fn start_debug(&mut self, rom_file: String) {

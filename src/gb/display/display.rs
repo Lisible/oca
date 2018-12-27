@@ -22,10 +22,8 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-pub mod display;
-pub mod event;
-mod cpu;
-mod gpu;
-mod memory;
-mod debugger;
+pub trait Display {
+    fn draw_pixel(&mut self, x: u8, y: u8, color: u8);
+    fn render(&mut self);
+    fn clear(&mut self);
+}

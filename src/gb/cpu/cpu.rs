@@ -515,6 +515,7 @@ impl CPU {
             0xFF => self.rst(0x38),
             _ => panic!("Unimplemented instruction")
         };
+
         self.run_interrupts();
     }
 

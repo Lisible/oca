@@ -22,15 +22,34 @@
 * SOFTWARE.
 */
 
-extern crate oca;
+use std::fmt;
 
-use std::env;
+pub enum Event {
+    Quit,
+    ControllerUp,
+    ControllerDown,
+    ControllerLeft,
+    ControllerRight,
+    ControllerA,
+    ControllerB,
+    ControllerStart,
+    ControllerSelect
+}
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    assert_eq!(args.len(), 2);
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = match self {
+            Event::Quit => "Quit",
+            Event::ControllerUp => "Up",
+            Event::ControllerDown => "Down",
+            Event::ControllerLeft => "Left",
+            Event::ControllerRight => "Right",
+            Event::ControllerA => "A",
+            Event::ControllerB => "B",
+            Event::ControllerStart => "Start",
+            Event::ControllerSelect => "Select"
+        };
 
-    let mut console = oca::gb::emulator::Emulator::new();
-
-    console.start_debug(args.get(1).unwrap().to_string());
+        write!(f, "{}", string)
+    }
 }
