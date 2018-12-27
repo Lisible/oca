@@ -22,8 +22,4 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-mod cpu;
-mod gpu;
-mod memory;
-mod debugger;
+pub mod gpu;

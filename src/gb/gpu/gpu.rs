@@ -22,8 +22,19 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-mod cpu;
-mod gpu;
-mod memory;
-mod debugger;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use gb::memory::memory_bus::MemoryBus;
+
+pub struct GPU {
+    memory_bus: Rc<RefCell<MemoryBus>>,
+}
+
+impl GPU {
+    pub fn new(memory_bus: Rc<RefCell<MemoryBus>>) -> GPU {
+        GPU {
+            memory_bus
+        }
+    }
+}
