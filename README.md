@@ -12,4 +12,9 @@ I'm writing it for learning purpose mainly
 - Timing
 - Inputs
 
-Based on the work of https://github.com/CTurt/Cinoop
+Based on the work of https://github.com/CTurt/Cinoop  
+I also thank Cronokirby https://github.com/cronokirby for his advices 
+
+PPU code inspired from
+http://www.codeslinger.co.uk/pages/projects/gameboy/lcd.html
+http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
