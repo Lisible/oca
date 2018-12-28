@@ -22,8 +22,10 @@
 * SOFTWARE.
 */
 
+use gb::display::color::Color;
+
 pub trait Display {
-    fn draw_pixel(&mut self, x: u8, y: u8, color: u8);
+    fn draw_pixel(&mut self, x: u8, y: u8, color: Color);
     fn render(&mut self);
     fn clear(&mut self);
 }

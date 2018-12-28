@@ -29,12 +29,13 @@ use std::env;
 
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use sdl2::pixels::Color;
+use sdl2::pixels::Color as SDLColor;
 use sdl2::rect::*;
 use sdl2::event::Event as SDLEvent;
 use sdl2::keyboard::*;
 
 use oca::gb::display::display::Display;
+use oca::gb::display::color::Color;
 use oca::gb::event::event::Event;
 
 struct SDL2Display {
@@ -56,8 +57,8 @@ impl SDL2Display {
 }
 
 impl Display for SDL2Display {
-    fn draw_pixel(&mut self, x: u8, y: u8, color: u8) {
-        self.canvas.set_draw_color(Color::RGB(color, color, color));
+    fn draw_pixel(&mut self, x: u8, y: u8, color: Color) {
+        self.canvas.set_draw_color(SDLColor::RGB(color.r, color.g, color.b));
         self.canvas.draw_point(Point::new(x as i32, y as i32));
     }
 
@@ -66,7 +67,7 @@ impl Display for SDL2Display {
     }
 
     fn clear(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(0,0,0));
+        self.canvas.set_draw_color(SDLColor::RGB(0,0,0));
         self.canvas.clear();
     }
 }
@@ -77,7 +78,7 @@ fn main() {
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
-    let window = video_subsystem.window("rust", 800, 600)
+    let window = video_subsystem.window("oca - GameBoy Emulator", 800, 600)
         .position_centered()
         .build()
         .unwrap();
@@ -87,25 +88,30 @@ fn main() {
 
 
     let mut console = oca::gb::emulator::Emulator::new(Box::new(display));
-    console.start(args.get(1).unwrap().to_string());
+    console.start_debug(args.get(1).unwrap().to_string());
 
-    'main_loop: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                SDLEvent::Quit {..} |
-                SDLEvent::KeyDown { keycode: Some(Keycode::Escape), ..} => break 'main_loop,
-                SDLEvent::KeyDown { keycode: Some(Keycode::Up), ..} => console.handle_event(Event::ControllerUp),
-                SDLEvent::KeyDown { keycode: Some(Keycode::Down), ..} => console.handle_event(Event::ControllerDown),
-                SDLEvent::KeyDown { keycode: Some(Keycode::Left), ..} => console.handle_event(Event::ControllerLeft),
-                SDLEvent::KeyDown { keycode: Some(Keycode::Right), ..} => console.handle_event(Event::ControllerRight),
-                SDLEvent::KeyDown { keycode: Some(Keycode::W), ..} => console.handle_event(Event::ControllerA),
-                SDLEvent::KeyDown { keycode: Some(Keycode::X), ..} => console.handle_event(Event::ControllerB),
-                SDLEvent::KeyDown { keycode: Some(Keycode::Asterisk), ..} => console.handle_event(Event::ControllerSelect),
-                SDLEvent::KeyDown { keycode: Some(Keycode::Return), ..} => console.handle_event(Event::ControllerStart),
-                _ => {}
+    /*'main_loop: loop {
+        for _ in 1..60 {
+            for event in event_pump.poll_iter() {
+                match event {
+                    SDLEvent::Quit {..} |
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Escape), ..} => break 'main_loop,
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Up), ..} => console.handle_event(Event::ControllerUp),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Down), ..} => console.handle_event(Event::ControllerDown),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Left), ..} => console.handle_event(Event::ControllerLeft),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Right), ..} => console.handle_event(Event::ControllerRight),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::W), ..} => console.handle_event(Event::ControllerA),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::X), ..} => console.handle_event(Event::ControllerB),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Asterisk), ..} => console.handle_event(Event::ControllerSelect),
+                    SDLEvent::KeyDown { keycode: Some(Keycode::Return), ..} => console.handle_event(Event::ControllerStart),
+                    _ => {}
+                }
             }
+
+
+            console.update();
         }
 
-        console.update();
-    }
+        console.render();
+    }*/
 }

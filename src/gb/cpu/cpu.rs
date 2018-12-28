@@ -76,11 +76,11 @@ pub struct CPU {
     ///
     /// Delay before disabling interrupts (number of instructions)
     ///
-    interrupt_disable_delay: u8,
+    interrupt_disable_delay: i8,
     ///
     /// Delay before enabling interrupts (number of instructions)
     ///
-    interrupt_enable_delay: u8,
+    interrupt_enable_delay: i8,
 
     stopped: bool,
     halted: bool,
@@ -141,8 +141,8 @@ impl CPU {
             program_counter: Register16Bit::new(),
             memory_bus,
             interrupt_master_enable: false,
-            interrupt_disable_delay: 0,
-            interrupt_enable_delay: 0,
+            interrupt_disable_delay: -1,
+            interrupt_enable_delay: -1,
             stopped: false,
             halted: false
         };
@@ -260,14 +260,17 @@ impl CPU {
         self.memory_bus.borrow_mut().write_8bit(0xFF49, 0xFF);
         self.memory_bus.borrow_mut().write_8bit(0xFF4A, 0x00);
         self.memory_bus.borrow_mut().write_8bit(0xFF4B, 0x00);
+        self.memory_bus.borrow_mut().write_8bit(0xFFFF, 0x00);
     }
 
     ///
     /// Emulates a single CPU step
     ///
-    pub fn step(&mut self) {
+    pub fn step(&mut self) -> u32 {
+
+        let pc = self.program_counter.read();
         let opcode = self.read_next_opcode();
-        match opcode {
+        let mut cycles = match opcode {
             0x00 => self.nop(),
             0x01 => { self.ld16(Operand16Bit::BiRegister(&BiRegisterIdentifier::BC), Operand16Bit::Direct16Bit); 12 },
             0x02 => { self.ld8(Operand8Bit::IndirectBiRegister(&BiRegisterIdentifier::BC), Operand8Bit::Register(&RegisterIdentifier::A)); 8 },
@@ -516,7 +519,24 @@ impl CPU {
             _ => panic!("Unimplemented instruction")
         };
 
-        self.run_interrupts();
+        if self.interrupt_enable_delay > 0 {
+            self.interrupt_enable_delay -= 1;
+        } else if self.interrupt_enable_delay == 0 {
+            self.interrupt_master_enable = true;
+            println!("Interrupts enabled");
+            self.interrupt_enable_delay = -1;
+        }
+
+        if self.interrupt_disable_delay > 0 {
+            self.interrupt_disable_delay -= 1;
+        } else if self.interrupt_disable_delay == 0 {
+            self.interrupt_master_enable = false;
+            println!("Interrupts disabled");
+            self.interrupt_disable_delay = -1;
+        }
+
+        cycles += self.run_interrupts();
+        cycles
     }
 
     fn read_next_opcode(&mut self) -> u8 {
@@ -536,6 +556,7 @@ impl CPU {
         let mut cycles = 0;
         if self.interrupt_master_enable {
             let interrupt_flags = self.memory_bus.borrow().read_8bit(0xFF0F);
+            println!("Interrupt flag: {}", interrupt_flags);
             let interrupt_enable_flags = self.memory_bus.borrow().read_8bit(0xFFFF);
 
             if interrupt_flags & interrupt_enable_flags & (1 << V_BLANK_INTERRUPT) != 0 {
@@ -885,7 +906,7 @@ impl CPU {
             Operand8Bit::DirectIOAddress => {
                 let pc = self.program_counter.read();
                 let offset = self.memory_bus.borrow().read_8bit_signed(pc);
-                let resulting_address = 0xFF00 + offset as u16;
+                let resulting_address = (0xFF00 as i32).wrapping_add(offset as i32) as u16;
                 self.program_counter.increment(1);
                 self.memory_bus.borrow().read_8bit(resulting_address)
             }
@@ -949,6 +970,13 @@ impl CPU {
                 let resulting_address = 0xFF00u16.wrapping_add(offset as u16);
                 self.memory_bus.borrow_mut().write_8bit(resulting_address, value)
             },
+            Operand8Bit::IndirectAddress => {
+                let pc = self.program_counter.read();
+                let address = self.memory_bus.borrow().read_16bit(pc);
+                self.program_counter.increment(2);
+                println!("addr: 0x{:X}", address);
+                self.memory_bus.borrow_mut().write_8bit(address, value);
+            },
             Operand8Bit::DirectIOAddress => {
                 let pc = self.program_counter.read();
                 let offset = self.memory_bus.borrow().read_8bit(pc);
@@ -1002,11 +1030,13 @@ impl CPU {
     }
 
     fn ei(&mut self) -> u32 {
+        //self.interrupt_master_enable = true;
         self.interrupt_enable_delay = 1;
         4
     }
 
     fn di(&mut self) -> u32 {
+        //self.interrupt_master_enable = false;
         self.interrupt_disable_delay = 1;
         4
     }
@@ -1369,10 +1399,7 @@ impl CPU {
     }
 
     fn ret(&mut self) -> u32 {
-        let sp = self.stack_pointer.read();
-        let value = self.memory_bus.borrow().read_16bit(sp);
-        self.stack_pointer.increment(2);
-        self.program_counter.write(value);
+        self.pop16(Operand16Bit::ProgramCounter);
         8
     }
 
@@ -1393,11 +1420,7 @@ impl CPU {
         let pc = self.program_counter.read();
         let address = self.memory_bus.borrow().read_16bit(pc);
         self.program_counter.increment(2);
-
-        let sp = self.stack_pointer.read();
-        let next_instruction_address = self.program_counter.read();
-        self.memory_bus.borrow_mut().write_16bit(sp, next_instruction_address);
-        self.stack_pointer.decrement(2);
+        self.push16(Operand16Bit::ProgramCounter);
 
         self.program_counter.write(address);
         12
@@ -1414,11 +1437,7 @@ impl CPU {
     }
 
     fn rst(&mut self, address: u8) -> u32 {
-        let pc = self.program_counter.read();
-        let sp = self.stack_pointer.read();
-        self.memory_bus.borrow_mut().write_16bit(sp, pc);
-        self.stack_pointer.decrement(2);
-
+        self.push16(Operand16Bit::ProgramCounter);
         self.program_counter.write(0x0000 + address as u16);
         32
     }

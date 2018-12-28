@@ -101,6 +101,7 @@ impl ReadMemory for [u8] {
 
 
     fn read_16bit(&self, address: u16) -> u16 {
+        println!("cartridge@{}: {}", address, self[address as usize]);
         self[address as usize] as u16 | ((self[(address+1) as usize] as u16) << 8)
     }
 }

@@ -23,3 +23,4 @@
 */
 
 pub mod gpu;
+pub mod nes_color;

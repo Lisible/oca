@@ -22,11 +22,9 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-pub mod display;
-pub mod event;
-mod cpu;
-mod gpu;
-mod memory;
-mod utils;
-mod debugger;
+pub enum NESColor {
+    White,
+    LightGray,
+    DarkGray,
+    Black
+}

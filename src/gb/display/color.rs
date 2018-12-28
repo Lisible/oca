@@ -22,11 +22,16 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-pub mod display;
-pub mod event;
-mod cpu;
-mod gpu;
-mod memory;
-mod utils;
-mod debugger;
+use std::convert::From;
+
+pub struct Color {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8
+}
+
+impl From<[u8; 3]> for Color {
+    fn from(color: [u8; 3]) -> Self {
+        Color {r: color[0], g: color[1],  b: color[2]}
+    }
+}

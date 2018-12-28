@@ -22,11 +22,14 @@
 * SOFTWARE.
 */
 
-pub mod emulator;
-pub mod display;
-pub mod event;
-mod cpu;
-mod gpu;
-mod memory;
-mod utils;
-mod debugger;
+pub struct Binary;
+
+impl Binary {
+    pub fn read_bit(value: &u8, bit: u8) -> u8 {
+        value & (1 << bit)
+    }
+
+    pub fn is_bit_set(value: &u8, bit: u8) -> bool {
+        Binary::read_bit(value, bit) != 0
+    }
+}

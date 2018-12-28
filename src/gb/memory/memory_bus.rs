@@ -31,6 +31,7 @@ pub struct MemoryBus {
     cartridge: [u8; 0x8000],
     ram: [u8; 0x2000],
     high_ram: [u8; 0x80],
+    vram: [u8; 0x2000],
     oam: [u8; 0xA0],
     io: [u8; 0x4D]
 }
@@ -41,6 +42,7 @@ impl MemoryBus {
             cartridge: [0; 0x8000],
             ram: [0; 0x2000],
             high_ram: [0; 0x80],
+            vram: [0; 0x2000],
             oam:  [0; 0xA0],
             io:  [0; 0x4D]
         }
@@ -59,6 +61,8 @@ impl ReadMemory for MemoryBus {
     fn read_8bit(&self, address: u16) -> u8 {
         if address < 0x8000 {
             self.cartridge.read_8bit(address)
+        } else if (address >= 0x8000) && (address < 0xA000) {
+            self.vram.read_8bit(address - 0x8000)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.read_8bit(address - 0xC000)
         } else if (address >= 0xE000) && (address < 0xFE00) {
@@ -72,7 +76,7 @@ impl ReadMemory for MemoryBus {
         } else if address == 0xFFFF {
             self.io.read_8bit(0x004C)
         }  else {
-            panic!("Unmapped memory access: {:X}", address)
+            0//panic!("Unmapped memory access: {:X}", address)
         }
     }
 
@@ -83,6 +87,8 @@ impl ReadMemory for MemoryBus {
     fn read_16bit(&self, address: u16) -> u16 {
         if address < 0x8000 {
             self.cartridge.read_16bit(address)
+        } else if (address >= 0x8000) && (address < 0xA000) {
+            self.vram.read_16bit(address - 0x8000)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.read_16bit(address - 0xC000)
         } else if (address >= 0xE000) && (address < 0xF000) {
@@ -102,27 +108,31 @@ impl ReadMemory for MemoryBus {
 impl WriteMemory for MemoryBus {
     fn write_8bit(&mut self, address: u16, value: u8) {
         if address < 0x8000 {
-            panic!("Cartridge ROM is read-only !!!")
+            //panic!("Cartridge ROM is read-only !!!")
+        } else if (address >= 0x8000) && (address < 0xA000) {
+            self.vram.write_8bit(address - 0x8000, value)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.write_8bit(address - 0xC000, value);
         } else if (address >= 0xE000) && (address < 0xFE00) {
             self.ram.write_8bit(address - 0xE000, value);
         } else if (address >= 0xFE00) && (address < 0xFEA0) {
             self.oam.write_8bit(address - 0xFE00, value);
-        }  else if (address >= 0xFF80) && (address < 0xFFFF) {
+        } else if (address >= 0xFF80) && (address < 0xFFFF) {
             self.high_ram.write_8bit(address - 0xFF80, value);
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit(address - 0xFF00, value);
         } else if address == 0xFFFF {
             self.io.write_8bit(0x004C, value)
         }  else {
-            panic!("Unmapped memory access: 0x{:X}", address)
+            //panic!("Unmapped memory access: 0x{:X}", address)
         }
     }
 
     fn write_8bit_signed(&mut self, address: u16, value: i8) {
         if address < 0x8000 {
             panic!("Cartridge ROM is read-only !!!")
+        } else if (address >= 0x8000) && (address < 0xA000) {
+            self.vram.write_8bit_signed(address - 0x8000, value)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.write_8bit_signed(address - 0xC000, value);
         } else if (address >= 0xE000) && (address < 0xF000) {
@@ -141,6 +151,8 @@ impl WriteMemory for MemoryBus {
     fn write_16bit(&mut self, address: u16, value: u16) {
         if address < 0x8000 {
             panic!("Cartridge ROM is read-only !!!")
+        } else if (address >= 0x8000) && (address < 0xA000) {
+            self.vram.write_16bit(address - 0x8000, value)
         } else if (address >= 0xC000) && (address < 0xE000) {
             self.ram.write_16bit(address - 0xC000, value);
         } else if (address >= 0xE000) && (address < 0xF000) {

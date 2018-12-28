@@ -21,12 +21,4 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-
-pub mod emulator;
-pub mod display;
-pub mod event;
-mod cpu;
-mod gpu;
-mod memory;
-mod utils;
-mod debugger;
+pub mod binary;

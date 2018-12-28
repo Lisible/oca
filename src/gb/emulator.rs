@@ -62,7 +62,12 @@ impl Emulator {
     }
 
     pub fn update(&mut self) {
-        self.cpu.step();
+        let cycles = self.cpu.step();
+        self.gpu.step(cycles);
+    }
+
+    pub fn render(&mut self) {
+        self.gpu.render();
     }
 
     pub fn handle_event(&mut self, event: Event) {
@@ -104,7 +109,8 @@ impl Emulator {
 
     pub fn step(&mut self, step_count: i32) {
         for _ in 0..step_count {
-            self.cpu.step();
+            let cycles = self.cpu.step();
+            self.gpu.step(cycles);
         }
     }
 
