@@ -38,7 +38,7 @@ pub struct SDL2Display {
 impl SDL2Display {
     pub fn new(window: Window) -> SDL2Display {
         let mut canvas = window.into_canvas().accelerated().build().unwrap();
-        canvas.set_scale(2f32, 2f32);
+        canvas.set_scale(800f32/160f32, 600f32/144f32);
 
         SDL2Display {
             canvas

@@ -23,6 +23,7 @@
 */
 
 use std::convert::From;
+use gb::gpu::nes_color::NESColor;
 
 pub struct Color {
     pub r: u8,
@@ -39,5 +40,16 @@ impl From<[u8; 3]> for Color {
 impl From<(u8, u8, u8)> for Color {
     fn from(color: (u8, u8, u8)) -> Self {
         Color {r: color.0, g: color.1,  b: color.2}
+    }
+}
+
+impl From<NESColor> for Color {
+    fn from(color: NESColor) -> Self {
+        match color {
+            NESColor::Black => Color{r: 0, g: 0, b: 0},
+            NESColor::DarkGray => Color{r: 0xCC, g: 0xCC, b: 0xCC},
+            NESColor::LightGray => Color{r: 0x77, g: 0x77, b: 0x77},
+            NESColor::White => Color{r: 255, g: 255, b: 255},
+        }
     }
 }

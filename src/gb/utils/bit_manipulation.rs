@@ -42,7 +42,7 @@ impl BitManipulation for u8 {
     }
 
     fn get_bit(&self, bit: u8) -> u8 {
-        return self & (1 << bit);
+        return (self & (1 << bit)) >> bit
     }
 }
 
@@ -77,6 +77,6 @@ mod tests {
         let value: u8 = 0b00000011;
         let bit = value.get_bit(1);
 
-        assert_eq!(bit, 0b00000010);
+        assert_eq!(bit, 0b00000001);
     }
 }

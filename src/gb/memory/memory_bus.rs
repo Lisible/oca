@@ -23,6 +23,7 @@
 */
 
 use gb::memory::memory::*;
+use gb::utils::bit_manipulation::BitManipulation;
 
 ///
 /// Allows access to the different part of the system memory
@@ -50,6 +51,12 @@ impl MemoryBus {
 
     pub fn load_rom(&mut self, rom_data: [u8; 0x8000]) {
         self.cartridge.copy_from_slice(&rom_data[..0x8000]);
+    }
+
+    pub fn request_interrupt(&mut self, interrupt_bit: u8) {
+        const ADDRESS_INTERRUPT_FLAGS: u16 = 0xFF0F;
+        let interrupt_flags = self.read_8bit(ADDRESS_INTERRUPT_FLAGS);
+        self.write_8bit(ADDRESS_INTERRUPT_FLAGS, interrupt_flags.set_bit(interrupt_bit));
     }
 
     pub fn dump_io_register(&self, address: u16) -> u8 {

@@ -22,6 +22,7 @@
 * SOFTWARE.
 */
 
+#[derive(Eq, PartialEq)]
 pub enum NESColor {
     White,
     LightGray,
