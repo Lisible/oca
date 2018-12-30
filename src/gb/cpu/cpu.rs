@@ -2793,7 +2793,7 @@ mod test {
     fn instruction_ret() {
         let mut cpu = create_cpu();
         cpu.stack_pointer.write(0xFFFC);
-        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFE, 0xC090);
 
         cpu.ret();
 
@@ -2806,7 +2806,7 @@ mod test {
         let mut cpu = create_cpu();
         cpu.set_flag(CPUFlag::C, true);
         cpu.stack_pointer.write(0xFFFC);
-        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFE, 0xC090);
 
         cpu.ret_flag(CPUFlag::C, true);
 
@@ -2820,7 +2820,7 @@ mod test {
         cpu.set_flag(CPUFlag::C, false);
 
         cpu.stack_pointer.write(0xFFFC);
-        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFE, 0xC090);
 
         cpu.ret_flag(CPUFlag::C, false);
 
@@ -2834,7 +2834,7 @@ mod test {
         cpu.set_flag(CPUFlag::C, false)
         ;
         cpu.stack_pointer.write(0xFFFC);
-        cpu.memory_bus.borrow_mut().write_16bit(0xFFFC, 0xC090);
+        cpu.memory_bus.borrow_mut().write_16bit(0xFFFE, 0xC090);
 
         cpu.ret_flag(CPUFlag::C, true);
 
