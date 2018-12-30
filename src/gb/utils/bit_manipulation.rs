@@ -22,45 +22,61 @@
 * SOFTWARE.
 */
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
-use gb::memory::memory::*;
-use gb::memory::memory_bus::MemoryBus;
-
-use gb::display::display::Display;
-use gb::display::color::Color;
-use gb::gpu::nes_color::NESColor;
-
-const ADDRESS_LCD_CONTROL: u16 = 0xFF40;
-const ADDRESS_LCD_STAT: u16 = 0xFF41;
-const ADDRESS_SCROLL_X: u16 = 0xFF43;
-const ADDRESS_SCROLL_Y: u16 = 0xFF42;
-const ADDRESS_WINDOW_X: u16 = 0xFF4B;
-const ADDRESS_WINDOW_Y: u16 = 0xFF4A;
-const ADDRESS_LY: u16 = 0xFF44;
-const ADDRESS_LYC: u16 = 0xFF45;
-const ADDRESS_PALETTE: u16 = 0xFF47;
-
-pub struct GPU {
-    memory_bus: Rc<RefCell<MemoryBus>>,
-    display: Box<Display>,
+pub trait BitManipulation {
+    fn is_bit_set(&self, bit: u8) -> bool;
+    fn set_bit(&self, bit: u8) -> u8;
+    fn reset_bit(&self, bit: u8) -> u8;
+    fn get_bit(&self, bit: u8) -> u8;
 }
 
-impl GPU {
-    pub fn new(memory_bus: Rc<RefCell<MemoryBus>>, display: Box<Display>) -> GPU {
-        GPU {
-            memory_bus,
-            display,
-        }
+impl BitManipulation for u8 {
+    fn is_bit_set(&self, bit: u8) -> bool {
+        return self.get_bit(bit) != 0;
+    }
+    fn set_bit(&self, bit: u8) -> u8 {
+        self | (1 << bit)
     }
 
-    pub fn step(&mut self, cycles: u32) {
-        println!("GPU Step");
+    fn reset_bit(&self, bit: u8) -> u8 {
+        self & !(1 << bit)
     }
 
-    pub fn render(&mut self) {
-        println!("GPU Rendering");
-        self.display.render();
+    fn get_bit(&self, bit: u8) -> u8 {
+        return self & (1 << bit);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_bit_set() {
+        let value: u8 = 0b00000100;
+        assert_eq!(value.is_bit_set(2), true);
+    }
+
+    #[test]
+    fn set_bit() {
+        let value: u8 = 0b00000000;
+        let value2 = value.set_bit(3);
+
+        assert_eq!(value2, 0b00001000);
+    }
+
+    #[test]
+    fn reset_bit() {
+        let value: u8 = 0b00000011;
+        let value2 = value.reset_bit(1);
+
+        assert_eq!(value2, 0b00000001);
+    }
+
+    #[test]
+    fn get_bit() {
+        let value: u8 = 0b00000011;
+        let bit = value.get_bit(1);
+
+        assert_eq!(bit, 0b00000010);
     }
 }
