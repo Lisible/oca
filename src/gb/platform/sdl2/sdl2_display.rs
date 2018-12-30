@@ -22,5 +22,43 @@
 * SOFTWARE.
 */
 
-extern crate sdl2;
-pub mod gb;
+use gb::display::display::Display;
+use gb::display::color::Color;
+
+use sdl2::video::Window;
+use sdl2::render::Canvas;
+use sdl2::pixels::Color as SDLColor;
+use sdl2::rect::Point;
+use sdl2::rect::Rect;
+
+pub struct SDL2Display {
+    canvas: Canvas<Window>
+}
+
+impl SDL2Display {
+    pub fn new(window: Window) -> SDL2Display {
+        let mut canvas = window.into_canvas().accelerated().build().unwrap();
+        canvas.set_scale(2f32, 2f32);
+
+        SDL2Display {
+            canvas
+        }
+    }
+}
+
+impl Display for SDL2Display {
+    fn draw_pixel(&mut self, x: u32, y: u32, color: Color) {
+        self.canvas.set_draw_color(SDLColor::from((color.r, color.g, color.b)));
+        self.canvas.draw_point(Point::new(x as i32, y as i32));
+    }
+
+    fn render(&mut self) {
+        self.canvas.present();
+    }
+
+    fn clear(&mut self) {
+        self.canvas.set_draw_color(SDLColor::RGB(0,0,0));
+
+        self.canvas.fill_rect(Rect::new(0, 0, 800, 600));
+    }
+}

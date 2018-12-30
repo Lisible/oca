@@ -23,4 +23,34 @@
 */
 
 extern crate sdl2;
-pub mod gb;
+extern crate oca;
+
+use std::env;
+
+use oca::gb::platform::sdl2::sdl2_display::SDL2Display;
+use oca::gb::display::display::Display;
+use oca::gb::display::color::Color;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    assert_eq!(args.len(), 2);
+
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let window = video_subsystem.window("oca - GameBoy Emulator", 800, 600)
+        .position_centered()
+        .build()
+        .unwrap();
+
+    let mut display = SDL2Display::new(window);
+
+    for i in 0u32..800*600 {
+        let color = if i%2 == 0 {0} else {255};
+        display.draw_pixel((i%800) as u32, (i/800) as u32, Color::from((color, color, color)));
+    }
+
+    loop {
+        display.render();
+    }
+
+}

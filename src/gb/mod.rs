@@ -25,6 +25,7 @@
 pub mod emulator;
 pub mod display;
 pub mod event;
+pub mod platform;
 mod cpu;
 mod gpu;
 mod memory;

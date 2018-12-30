@@ -22,5 +22,4 @@
 * SOFTWARE.
 */
 
-extern crate sdl2;
-pub mod gb;
+pub mod sdl2;

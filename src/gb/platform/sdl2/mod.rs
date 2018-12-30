@@ -21,6 +21,4 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 */
-
-extern crate sdl2;
-pub mod gb;
+pub mod sdl2_display;

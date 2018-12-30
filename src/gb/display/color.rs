@@ -35,3 +35,9 @@ impl From<[u8; 3]> for Color {
         Color {r: color[0], g: color[1],  b: color[2]}
     }
 }
+
+impl From<(u8, u8, u8)> for Color {
+    fn from(color: (u8, u8, u8)) -> Self {
+        Color {r: color.0, g: color.1,  b: color.2}
+    }
+}

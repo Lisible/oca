@@ -25,7 +25,7 @@
 use gb::display::color::Color;
 
 pub trait Display {
-    fn draw_pixel(&mut self, x: u8, y: u8, color: Color);
+    fn draw_pixel(&mut self, x: u32, y: u32, color: Color);
     fn render(&mut self);
     fn clear(&mut self);
 }
