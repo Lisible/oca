@@ -121,19 +121,6 @@ impl CPU {
         registers.insert(RegisterIdentifier::L, Rc::new(RefCell::new(Register8Bit::new())));
 
         let mut bi_registers = HashMap::new();
-        /*bi_registers.insert(BiRegisterIdentifier::AF,
-                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::F]),
-                                                Rc::clone(&registers[&RegisterIdentifier::A])));
-        bi_registers.insert(BiRegisterIdentifier::BC,
-                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::C]),
-                                                Rc::clone(&registers[&RegisterIdentifier::B])));
-        bi_registers.insert(BiRegisterIdentifier::DE,
-                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::E]),
-                                                Rc::clone(&registers[&RegisterIdentifier::D])));
-        bi_registers.insert(BiRegisterIdentifier::HL,
-                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::L]),
-                                                Rc::clone(&registers[&RegisterIdentifier::H])));*/
-
         bi_registers.insert(BiRegisterIdentifier::AF,
                             BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::A]),
                                                 Rc::clone(&registers[&RegisterIdentifier::F])));
@@ -1221,6 +1208,7 @@ impl CPU {
     fn and(&mut self, operand: Operand8Bit) {
         let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_value_from_8bit_operand(&operand);
+        println!("and lhs 0x{:X}, rhs 0x{:X}", lhs, rhs);
         let result = lhs & rhs;
 
         self.set_flag(CPUFlag::Z, result == 0);

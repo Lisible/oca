@@ -77,7 +77,6 @@ impl GPU {
         } else {
             return;
         }
-
         if self.scanline_counter <= 0 {
             let line = self.memory_bus.borrow().read_8bit(ADDRESS_LY);
             let current_line = line.wrapping_add(1);
@@ -226,8 +225,8 @@ impl GPU {
 
         for sprite in 0..40 {
             let index = sprite * 4;
-            let y_position = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index) - 16;
-            let x_position = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index + 1) - 8;
+            let y_position = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index).wrapping_sub(16);
+            let x_position = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index + 1).wrapping_sub(8);
             let tile_location = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index + 2);
             let attributes = self.memory_bus.borrow().read_8bit(ADDRESS_SPRITE_ATTRIBUTE_TABLE + index + 3);
 

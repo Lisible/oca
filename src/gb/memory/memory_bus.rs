@@ -114,6 +114,8 @@ impl ReadMemory for MemoryBus {
 
 impl WriteMemory for MemoryBus {
     fn write_8bit(&mut self, address: u16, value: u8) {
+        if address == 0xFF80 {return;}
+
         if address < 0x8000 {
             //panic!("Cartridge ROM is read-only !!!")
         } else if (address >= 0x8000) && (address < 0xA000) {
