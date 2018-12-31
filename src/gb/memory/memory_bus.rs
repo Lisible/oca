@@ -127,9 +127,6 @@ impl WriteMemory for MemoryBus {
         } else if (address >= 0xFE00) && (address < 0xFEA0) {
             self.oam.write_8bit(address - 0xFE00, value);
         } else if (address >= 0xFF80) && (address < 0xFFFF) {
-            if address == 0xFFE1 {
-                println!("Valeur écrite en FFE1: 0x{:X}", value);
-            }
             self.high_ram.write_8bit(address - 0xFF80, value);
         } else if (address >= 0xFF00) && (address < 0xFF4C) {
             self.io.write_8bit(address - 0xFF00, value);
@@ -176,7 +173,7 @@ impl WriteMemory for MemoryBus {
         } else if address == 0xFFFF {
             self.io.write_16bit(0xFF4C, value)
         }  else {
-            panic!("Unmapped memory access")
+            panic!("Unmapped memory access: 0x{:X}", address)
         }
     }
 }

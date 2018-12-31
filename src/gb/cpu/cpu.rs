@@ -523,7 +523,6 @@ impl CPU {
             self.interrupt_enable_delay -= 1;
         } else if self.interrupt_enable_delay == 0 {
             self.interrupt_master_enable = true;
-            println!("Interrupts enabled");
             self.interrupt_enable_delay = -1;
         }
 
@@ -531,7 +530,6 @@ impl CPU {
             self.interrupt_disable_delay -= 1;
         } else if self.interrupt_disable_delay == 0 {
             self.interrupt_master_enable = false;
-            println!("Interrupts disabled");
             self.interrupt_disable_delay = -1;
         }
 
@@ -556,7 +554,6 @@ impl CPU {
         let mut cycles = 0;
         if self.interrupt_master_enable {
             let interrupt_flags = self.memory_bus.borrow().read_8bit(0xFF0F);
-            println!("Interrupt flag: {}", interrupt_flags);
             let interrupt_enable_flags = self.memory_bus.borrow().read_8bit(0xFFFF);
 
             if interrupt_flags & interrupt_enable_flags & (1 << V_BLANK_INTERRUPT) != 0 {
@@ -923,7 +920,6 @@ impl CPU {
             },
             Operand16Bit::BiRegister(identifier) => {
                 let val = self.read_bi_register(identifier);
-                println!("Val: 0x{:X}", val);
                 val
             },
             Operand16Bit::IndirectAddress => {
@@ -976,7 +972,6 @@ impl CPU {
                 let pc = self.program_counter.read();
                 let address = self.memory_bus.borrow().read_16bit(pc);
                 self.program_counter.increment(2);
-                println!("addr: 0x{:X}", address);
                 self.memory_bus.borrow_mut().write_8bit(address, value);
             },
             Operand8Bit::DirectIOAddress => {
@@ -1208,7 +1203,6 @@ impl CPU {
     fn and(&mut self, operand: Operand8Bit) {
         let lhs = self.read_register(&RegisterIdentifier::A);
         let rhs = self.read_value_from_8bit_operand(&operand);
-        println!("and lhs 0x{:X}, rhs 0x{:X}", lhs, rhs);
         let result = lhs & rhs;
 
         self.set_flag(CPUFlag::Z, result == 0);
@@ -1268,7 +1262,6 @@ impl CPU {
     fn add16(&mut self, first_operand: Operand16Bit, second_operand: Operand16Bit) {
         let lhs = self.read_value_from_16bit_operand(&first_operand);
         let rhs = self.read_value_from_16bit_operand(&second_operand);
-        println!("LHS: 0x{:X} RHS: 0x{:X}", lhs, rhs);
         let sum = (lhs as u32).wrapping_add(rhs as u32);
 
         if let Operand16Bit::StackPointer = first_operand {

@@ -190,7 +190,7 @@ impl GPU {
             let data_2 = self.memory_bus.borrow().read_8bit(tile_location + line  as u16 + 1u16);
 
             let color_bit = -1*((x_pos % 8) as i32 - 7) as i32;
-            let color_identifier = (data_2.get_bit(color_bit as u8) << 1) | data_2.get_bit(color_bit as u8);
+            let color_identifier = (data_1.get_bit(color_bit as u8) << 1) | data_2.get_bit(color_bit as u8);
             let color = self.get_color(color_identifier, ADDRESS_PALETTE);
 
             let final_y = self.memory_bus.borrow().read_8bit(ADDRESS_LY);
@@ -209,7 +209,7 @@ impl GPU {
             _ => panic!("Unknown color")
         };
 
-        let color = (palette.get_bit(hi) << 1) | palette.get_bit(0);
+        let color = (palette.get_bit(hi) << 1) | palette.get_bit(lo);
         match color {
             0 => NESColor::White,
             1 => NESColor::LightGray,
