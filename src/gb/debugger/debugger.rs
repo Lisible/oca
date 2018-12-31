@@ -105,7 +105,7 @@ impl Debugger
             emulator.render();
 
             let cpu_state = emulator.dump_cpu_state();
-            println!("PC: 0x{:X}  (Opcode: 0x{:X} = {}): HL = 0x{:X}{:X}, A = 0x{:X}", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode), cpu_state.l, cpu_state.h, cpu_state.a);
+            println!("PC: 0x{:X}  (Opcode: 0x{:X} = {}): HL = 0x{:X}{:X}, A = 0x{:X}, DE = 0x{:X}{:X}, BC = 0x{:X}{:X}", cpu_state.program_counter, cpu_state.opcode, opcode_disassembly::disassemble(cpu_state.opcode), cpu_state.l, cpu_state.h, cpu_state.a, cpu_state.d, cpu_state.e, cpu_state.b, cpu_state.c);
             if self.breakpoints.contains(&cpu_state.program_counter) {
                 println!("Breakpoint encounted on line 0x{:X}", cpu_state.program_counter);
                 break;

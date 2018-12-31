@@ -121,7 +121,7 @@ impl CPU {
         registers.insert(RegisterIdentifier::L, Rc::new(RefCell::new(Register8Bit::new())));
 
         let mut bi_registers = HashMap::new();
-        bi_registers.insert(BiRegisterIdentifier::AF,
+        /*bi_registers.insert(BiRegisterIdentifier::AF,
                             BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::F]),
                                                 Rc::clone(&registers[&RegisterIdentifier::A])));
         bi_registers.insert(BiRegisterIdentifier::BC,
@@ -132,7 +132,20 @@ impl CPU {
                                                 Rc::clone(&registers[&RegisterIdentifier::D])));
         bi_registers.insert(BiRegisterIdentifier::HL,
                             BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::L]),
-                                                Rc::clone(&registers[&RegisterIdentifier::H])));
+                                                Rc::clone(&registers[&RegisterIdentifier::H])));*/
+
+        bi_registers.insert(BiRegisterIdentifier::AF,
+                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::A]),
+                                                Rc::clone(&registers[&RegisterIdentifier::F])));
+        bi_registers.insert(BiRegisterIdentifier::BC,
+                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::B]),
+                                                Rc::clone(&registers[&RegisterIdentifier::C])));
+        bi_registers.insert(BiRegisterIdentifier::DE,
+                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::D]),
+                                                Rc::clone(&registers[&RegisterIdentifier::E])));
+        bi_registers.insert(BiRegisterIdentifier::HL,
+                            BiRegister8Bit::new(Rc::clone(&registers[&RegisterIdentifier::H]),
+                                                Rc::clone(&registers[&RegisterIdentifier::L])));
 
         let mut cpu = CPU {
             registers,
@@ -922,7 +935,9 @@ impl CPU {
                 value
             },
             Operand16Bit::BiRegister(identifier) => {
-                self.read_bi_register(identifier)
+                let val = self.read_bi_register(identifier);
+                println!("Val: 0x{:X}", val);
+                val
             },
             Operand16Bit::IndirectAddress => {
                 let pc = self.program_counter.read();
@@ -1265,6 +1280,7 @@ impl CPU {
     fn add16(&mut self, first_operand: Operand16Bit, second_operand: Operand16Bit) {
         let lhs = self.read_value_from_16bit_operand(&first_operand);
         let rhs = self.read_value_from_16bit_operand(&second_operand);
+        println!("LHS: 0x{:X} RHS: 0x{:X}", lhs, rhs);
         let sum = (lhs as u32).wrapping_add(rhs as u32);
 
         if let Operand16Bit::StackPointer = first_operand {

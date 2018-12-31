@@ -48,9 +48,9 @@ fn main() {
 
 
     let mut console = oca::gb::emulator::Emulator::new(Box::new(display));
-    console.start_debug(args.get(1).unwrap().to_string());
+    console.start(args.get(1).unwrap().to_string());
 
-    /*'main_loop: loop {
+    'main_loop: loop {
         for event in event_pump.poll_iter() {
             match event {
                 SDLEvent::Quit {..} |
@@ -69,5 +69,5 @@ fn main() {
 
         console.update();
         console.render();
-    }*/
+    }
 }
