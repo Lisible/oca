@@ -250,7 +250,7 @@ impl GPU {
                 let data_1 = self.memory_bus.borrow().read_8bit(data_address);
                 let data_2 = self.memory_bus.borrow().read_8bit(data_address + 1);
 
-                for tile_pixel in 7..0 {
+                for tile_pixel in (0..7).rev() {
                     let mut color_bit: i8 = tile_pixel;
 
                     if flip_x {

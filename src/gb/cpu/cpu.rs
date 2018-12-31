@@ -270,6 +270,7 @@ impl CPU {
 
         let pc = self.program_counter.read();
         let opcode = self.read_next_opcode();
+        println!("PC: 0x{:X}, A: 0x{:X}, opcode: 0x{:X}", pc, self.read_register(&RegisterIdentifier::A), opcode);
         let mut cycles = match opcode {
             0x00 => self.nop(),
             0x01 => { self.ld16(Operand16Bit::BiRegister(&BiRegisterIdentifier::BC), Operand16Bit::Direct16Bit); 12 },
@@ -532,8 +533,6 @@ impl CPU {
             self.interrupt_master_enable = false;
             self.interrupt_disable_delay = -1;
         }
-
-        cycles += self.run_interrupts();
         cycles
     }
 
@@ -544,7 +543,7 @@ impl CPU {
         opcode
     }
 
-    fn run_interrupts(&mut self) -> u32 {
+    pub fn run_interrupts(&mut self) -> u32 {
         const V_BLANK_INTERRUPT: u8 = 0;
         const LCDC_INTERRUPT: u8 = 1;
         const TIMER_OVERFLOW_INTERRUPT: u8 = 2;
@@ -999,7 +998,6 @@ impl CPU {
                 let pc = self.program_counter.read();
                 let offset = self.memory_bus.borrow().read_8bit_signed(pc);
                 self.program_counter.increment(1);
-
                 let sp = self.stack_pointer.read();
                 self.memory_bus.borrow_mut().write_16bit((sp as i32 + offset as i32) as u16, value);
             }
@@ -1053,6 +1051,12 @@ impl CPU {
     }
 
     fn push16(&mut self, operand: Operand16Bit) -> u32 {
+        if let Operand16Bit::ProgramCounter = operand {
+            println!("Pushing PC on stack, Pc: 0x{:X}", self.program_counter.read());
+        } else {
+            println!("Pushing something on stack");
+        }
+
         let value = self.read_value_from_16bit_operand(&operand);
         let sp = self.stack_pointer.read();
         self.stack_pointer.decrement(2);
@@ -1064,6 +1068,13 @@ impl CPU {
         self.stack_pointer.increment(2);
         let sp = self.stack_pointer.read();
         let value = self.memory_bus.borrow().read_16bit(sp);
+
+        if let Operand16Bit::ProgramCounter = operand {
+            println!("Popping PC from stack, Pc: 0x{:X}", value);
+        } else {
+            println!("Popped something from stack");
+        }
+
         self.write_value_to_16bit_operand(&operand, value);
         12
     }
@@ -1352,7 +1363,7 @@ impl CPU {
         self.program_counter.increment(1);
 
         let pc = self.program_counter.read();
-        self.program_counter.write((pc as i32 + value as i32 - 1) as u16);
+        self.program_counter.write((pc as i32 + value as i32) as u16);
         12
     }
 

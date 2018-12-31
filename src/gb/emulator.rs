@@ -62,8 +62,15 @@ impl Emulator {
     }
 
     pub fn update(&mut self) {
-        let cycles = self.cpu.step();
-        self.gpu.step(cycles);
+        const MAX_CYCLES: u32 = 69905;
+        let mut cycles_this_update = 0;
+
+        while cycles_this_update < MAX_CYCLES {
+            let cycles = self.cpu.step();
+            cycles_this_update += cycles;
+            self.gpu.step(cycles);
+            self.cpu.run_interrupts();
+        }
     }
 
     pub fn render(&mut self) {
@@ -111,6 +118,7 @@ impl Emulator {
         for _ in 0..step_count {
             let cycles = self.cpu.step();
             self.gpu.step(cycles);
+            self.cpu.run_interrupts();
         }
     }
 
