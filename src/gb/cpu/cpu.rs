@@ -2721,7 +2721,7 @@ mod test {
         cpu.jr_r8();
 
         let pc = cpu.program_counter.read();
-        assert_eq!(pc, 0xC007);
+        assert_eq!(pc, 0xC008);
     }
 
     #[test]
