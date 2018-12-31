@@ -7,8 +7,9 @@ I'm writing it for learning purpose mainly
 ## Done
 - Implement CPU Instructions
 - Implement basic debugging features
+## Ongoing
+- Rendering (done but still has some bugs to fix)
 ## To do
-- Rendering
 - Timing
 - Inputs
 
